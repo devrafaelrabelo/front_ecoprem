@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
+  isInitialLoading: boolean // Novo estado para loading inicial
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; message?: string }>
   logout: () => Promise<void>
   refreshAuth: () => Promise<void>
@@ -19,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true) // Loading inicial
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const lastActivityRef = useRef(Date.now())
@@ -33,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
 
     try {
+      console.log("🔍 Verificando autenticação...")
       const currentUser = await authService.getCurrentUser()
 
       if (currentUser) {
@@ -53,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem("user_data")
     } finally {
       setIsLoading(false)
+      setIsInitialLoading(false) // Finaliza loading inicial
     }
   }, [mounted])
 
@@ -67,15 +71,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.success) {
         console.log("✅ Login bem-sucedido.")
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        // Mostrar loading por um tempo para melhor UX
+        await new Promise((resolve) => setTimeout(resolve, 1500))
 
         // Só redirecionar se estivermos na página de login
-        // O middleware vai gerenciar o redirecionamento baseado nos cookies HttpOnly
         if (window.location.pathname === "/login") {
           console.log("🔀 Login bem-sucedido na página de login, redirecionando...")
           window.location.href = "/"
         } else {
-          // Se não estivermos na página de login, apenas atualizar o estado
           await checkAuthentication()
         }
 
@@ -130,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isAuthenticated,
     isLoading: mounted ? isLoading : true,
+    isInitialLoading: mounted ? isInitialLoading : true,
     login,
     logout,
     refreshAuth,

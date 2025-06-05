@@ -1,7 +1,17 @@
+"use client"
+
 import { LoginForm } from "@/features/auth/components/login-form"
 import { APP_NAME, LOGO_URL } from "@/config"
+import { useAuth } from "@/features/auth/context/auth-context"
+import { FullScreenLoader } from "@/components/full-screen-loader"
 
 export default function LoginPage() {
+  const { isInitialLoading } = useAuth()
+
+  if (isInitialLoading) {
+    return <FullScreenLoader /> // ou return null
+  }
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Lado esquerdo - Formulário de login */}
@@ -16,7 +26,7 @@ export default function LoginPage() {
               />
               <h1 className="text-2xl font-bold">{APP_NAME}</h1>
             </div>
-         </div>
+          </div>
 
           <h1 className="text-3xl font-bold mb-2">Bem-vindo de volta</h1>
           <p className="text-muted-foreground mb-8">Acesse sua conta para continuar</p>
@@ -35,8 +45,7 @@ export default function LoginPage() {
       </div>
 
       {/* Lado direito - Visual */}
-        <div className="hidden md:flex w-1/2 bg-gradient-to-br to-primary/60 relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-20"></div>
+      <div className="hidden md:flex w-1/2 overflow-hidden">
         <div className="relative z-10 flex flex-col justify-center items-center p-16 text-white">
           <div className="mb-8">
             <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center mb-4">

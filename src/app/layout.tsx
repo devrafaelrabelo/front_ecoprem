@@ -3,14 +3,13 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ClientProviders } from "@/components/client-providers"
-import { APP_NAME } from "@/config"
 import { BackendStatusIndicator } from "@/components/backend-status-indicator"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: APP_NAME,
-  description: `Sistema de autenticação - ${APP_NAME}`,
+  title: "Sistema EcoPrem",
+  description: "Sistema de gestão EcoPrem",
 }
 
 export default function RootLayout({
@@ -20,9 +19,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
-        <ClientProviders>
-          {children}
+      <body className={inter.className}>
+        <ClientProviders>{children}
           <BackendStatusIndicator />
         </ClientProviders>
       </body>
