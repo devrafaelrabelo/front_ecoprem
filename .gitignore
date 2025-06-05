@@ -1,0 +1,49 @@
+# Dependências
+node_modules/
+.pnp/
+.pnp.js
+
+# Build da aplicação
+.next/
+out/
+
+# Arquivos de log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Ambiente
+.env
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cache do Next.js
+.cache/
+.next.cache/
+
+# Configurações de IDEs
+.vscode/
+.idea/
+*.sw?
+
+# Output de exportações
+*.local
+*.log
+*.tgz
+
+# Arquivos do sistema operacional
+*.sublime-workspace
+*.sublime-project
+*.code-workspace
+
+# Outros
+coverage/
+*.tsbuildinfo
