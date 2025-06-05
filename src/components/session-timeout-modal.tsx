@@ -17,7 +17,7 @@ import {
 import { AlertCircle, Clock } from "lucide-react"
 
 // Configurações de tempo (em milissegundos)
-const IDLE_TIMEOUT = 15 * 60 * 1000 // 15 minutos de inatividade
+const IDLE_TIMEOUT = 1 * 60 * 1000 // 15 minutos de inatividade
 
 export function SessionTimeoutModal() {
   const [open, setOpen] = useState(false)

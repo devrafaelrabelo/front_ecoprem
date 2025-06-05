@@ -35,7 +35,7 @@ export default function LoginPage() {
       </div>
 
       {/* Lado direito - Visual */}
-      <div className="hidden md:flex w-1/2 overflow-hidden">
+        <div className="hidden md:flex w-1/2 bg-gradient-to-br to-primary/60 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-20"></div>
         <div className="relative z-10 flex flex-col justify-center items-center p-16 text-white">
           <div className="mb-8">

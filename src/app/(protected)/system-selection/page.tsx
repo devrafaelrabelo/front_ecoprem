@@ -48,7 +48,7 @@ export default function SystemSelectionPage() {
 
   // Função para navegar para a página de ajuda
   const goToHelp = () => {
-    router.push("/help")
+    window.open("http://localhost:8080/swagger-ui/index.html#/", "_blank");
   }
 
   return (

@@ -23,25 +23,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 2. Ignorar assets estáticos (imagens, SVGs, etc.)
+  // 2. Ignorar assets estáticos e arquivos de sistema
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/static/") ||
+    pathname.startsWith("/.well-known/") ||
     pathname.includes("/favicon") ||
     pathname.includes("/placeholder.svg") ||
-    pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp|css|js|woff|woff2|ttf|eot)$/)
+    pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp|css|js|woff|woff2|ttf|eot|json|xml|txt|map)$/)
   ) {
-    console.log("➡️ Middleware: Ignorando asset estático.")
+    console.log("➡️ Middleware: Ignorando asset estático ou arquivo de sistema:", pathname)
     return NextResponse.next()
   }
-
-  // 3. Tratar a rota raiz (/) separadamente
-  if (pathname === "/") {
-    console.log("🏠 Middleware: Rota raiz detectada, redirecionando para login.")
-    return NextResponse.redirect(new URL("/login", request.url))
-  }
-
-  const isPublicRoute = publicRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
 
   // ✅ COOKIES HTTPONLY SÃO ACESSÍVEIS NO SERVIDOR (MIDDLEWARE)
   const authToken = request.cookies.get(AUTH_COOKIE_NAME)?.value
@@ -91,6 +84,30 @@ export async function middleware(request: NextRequest) {
     console.log("🚫 Middleware: Nenhum cookie HttpOnly encontrado.")
     isAuthenticated = false
   }
+
+  // 3. Tratar a rota raiz (/) - VERIFICAR AUTENTICAÇÃO PRIMEIRO
+  if (pathname === "/") {
+    if (isAuthenticated) {
+      // Se autenticado, redirecionar para destino salvo ou system-selection
+      const redirectCookie = request.cookies.get("redirect_after_login")?.value
+      const destination = redirectCookie || "/system-selection"
+
+      // Limpar cookie de redirecionamento
+      const response = NextResponse.redirect(new URL(destination, request.url))
+      if (redirectCookie) {
+        response.cookies.delete("redirect_after_login")
+      }
+
+      console.log("🏠 Middleware: Rota raiz com usuário autenticado, redirecionando para:", destination)
+      return response
+    } else {
+      // Se não autenticado, redirecionar para login
+      console.log("🏠 Middleware: Rota raiz sem autenticação, redirecionando para login.")
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
+  }
+
+  const isPublicRoute = publicRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
 
   // 5. Lógica de redirecionamento baseada na validação real
   if (!isPublicRoute && !isAuthenticated) {

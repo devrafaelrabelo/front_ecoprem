@@ -158,74 +158,81 @@ export const authService = {
   getCurrentUser: async (): Promise<User | null> => {
     if (!isClient) return null
 
-  try {
-    console.log("🔄 Verificando usuário atual com backend...")
+    try {
+      console.log("🔄 Verificando usuário atual com backend...")
 
-    const response = await fetch(`${config.api.baseUrl}/api/auth/validate`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      credentials: "include",
-      signal: AbortSignal.timeout(5000),
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      return parseUser(data)
-    }
-
-    if (response.status === 401 || response.status === 400) {
-      console.log("🔁 Token expirado. Tentando refresh...")
-
-      const refreshResponse = await fetch(`${config.api.baseUrl}/api/auth/refresh`, {
-        method: "POST",
+      const response = await fetch(`${config.api.baseUrl}/api/auth/validate`, {
+        method: "GET",
         headers: {
-          "Content-Type": "application/json",
+          Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest",
         },
         credentials: "include",
         signal: AbortSignal.timeout(5000),
       })
 
-      if (refreshResponse.ok) {
-        console.log("✅ Refresh token aceito. Revalidando...")
-        const retry = await fetch(`${config.api.baseUrl}/api/auth/validate`, {
-          method: "GET",
+      if (response.ok) {
+        const data = await response.json()
+        console.log("✅ Usuário validado com sucesso")
+        return parseUser(data)
+      }
+
+      if (response.status === 401 || response.status === 400) {
+        console.log("🔁 Token expirado. Tentando refresh...")
+
+        const refreshResponse = await fetch(`${config.api.baseUrl}/api/auth/refresh`, {
+          method: "POST",
           headers: {
-            Accept: "application/json",
+            "Content-Type": "application/json",
             "X-Requested-With": "XMLHttpRequest",
           },
           credentials: "include",
           signal: AbortSignal.timeout(5000),
         })
 
-        if (retry.ok) {
-          const data = await retry.json()
+        if (refreshResponse.ok) {
+          console.log("✅ Refresh token aceito. Revalidando...")
 
-          // Se houver callbackUrl na URL, redireciona manualmente
-          const urlParams = new URLSearchParams(window.location.search)
-          const callback = urlParams.get("callbackUrl")
-          if (callback) {
-            window.location.href = callback
-            return null // deixa o redirecionamento assumir
+          // Aguardar um pouco para os cookies serem processados
+          await new Promise((resolve) => setTimeout(resolve, 200))
+
+          const retry = await fetch(`${config.api.baseUrl}/api/auth/validate`, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            credentials: "include",
+            signal: AbortSignal.timeout(5000),
+          })
+
+          if (retry.ok) {
+            const data = await retry.json()
+            console.log("✅ Revalidação após refresh bem-sucedida")
+
+            // Se estivermos na página de login e o refresh foi bem-sucedido,
+            // forçar atualização para que o middleware processe os novos cookies
+            if (window.location.pathname === "/login") {
+              console.log("🔀 Refresh bem-sucedido na página de login, forçando atualização...")
+              window.location.reload()
+              return null
+            }
+
+            return parseUser(data)
           }
-
-          return parseUser(data)
         }
+
+        console.warn("🚫 Refresh falhou. Usuário não autenticado.")
+        return null
       }
 
-      console.warn("🚫 Refresh falhou. Usuário não autenticado.")
+      console.warn("🚫 Validação falhou. Status:", response.status)
+      return null
+    } catch (error) {
+      console.error("❌ Erro ao validar usuário:", error)
       return null
     }
-
-    return null
-  } catch (error) {
-    console.error("❌ Erro ao validar usuário:", error)
-    return null
-  }
-},
+  },
 
   /**
    * Realiza o logout no backend Spring Boot.

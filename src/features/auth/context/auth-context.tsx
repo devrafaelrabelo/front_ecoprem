@@ -1,14 +1,5 @@
 "use client"
-import { config } from "@/config"
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  type ReactNode,
-} from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { authService, type User } from "@/features/auth/services/auth-service"
 
@@ -16,11 +7,7 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (
-    email: string,
-    password: string,
-    rememberMe?: boolean,
-  ) => Promise<{ success: boolean; message?: string }>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; message?: string }>
   logout: () => Promise<void>
   refreshAuth: () => Promise<void>
   updateUser: (userData: Partial<User>) => void
@@ -38,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
-  }, [])  
+  }, [])
 
   const checkAuthentication = useCallback(async () => {
     if (!mounted) return
@@ -81,7 +68,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.success) {
         console.log("✅ Login bem-sucedido.")
         await new Promise((resolve) => setTimeout(resolve, 1000))
-        await checkAuthentication()
+
+        // Só redirecionar se estivermos na página de login
+        // O middleware vai gerenciar o redirecionamento baseado nos cookies HttpOnly
+        if (window.location.pathname === "/login") {
+          console.log("🔀 Login bem-sucedido na página de login, redirecionando...")
+          window.location.href = "/"
+        } else {
+          // Se não estivermos na página de login, apenas atualizar o estado
+          await checkAuthentication()
+        }
+
         return { success: true }
       } else {
         console.log("❌ Falha no login:", response.message)
