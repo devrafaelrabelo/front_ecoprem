@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { config as appConfig } from "@/config"
 
-const publicRoutes = ["/login", "/forgot-password", "/register"]
+const publicRoutes = ["/login", "/forgot-password", "/register", "/test"]
 const apiRoutes = ["/api"]
 
 const AUTH_COOKIE_NAME = "ecoprem_auth_token"
