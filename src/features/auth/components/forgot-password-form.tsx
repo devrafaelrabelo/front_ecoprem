@@ -26,6 +26,11 @@ export function ForgotPasswordForm() {
     if (!email || !email.includes("@")) {
       setEmailError(true)
       setIsSubmitting(false)
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "Por favor, insira um endereço de email válido.",
+      })
       return
     }
 
@@ -36,7 +41,7 @@ export function ForgotPasswordForm() {
       toast({
         title: "Email enviado",
         description: "Instruções de recuperação foram enviadas para seu email.",
-        variant: "default",
+        variant: "success",
       })
 
       // Redirecionar para login após alguns segundos
@@ -60,13 +65,6 @@ export function ForgotPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="mb-4 p-3 bg-yellow-100 text-yellow-800 rounded-md">
-        <p className="text-sm">
-          <strong>Aviso:</strong> Este é um formulário de demonstração. A recuperação de senha real precisa ser
-          implementada.
-        </p>
-      </div>
-
       <div className="space-y-4">
         <FloatingLabelInput
           id="email"

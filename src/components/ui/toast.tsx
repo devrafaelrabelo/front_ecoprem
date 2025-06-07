@@ -3,7 +3,7 @@
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
-import { X } from "lucide-react"
+import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -30,10 +30,12 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: "border bg-background text-foreground",
-        destructive: "destructive group border-destructive bg-destructive text-destructive-foreground",
+        destructive: "border-red-500 bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700",
         success:
           "border-green-500 bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
-        error: "border-red-500 bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700",
+        warning:
+          "border-yellow-500 bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700",
+        info: "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700",
       },
     },
     defaultVariants: {
@@ -103,6 +105,21 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
+const ToastIcon = ({ variant }: { variant?: "default" | "destructive" | "success" | "warning" | "info" }) => {
+  switch (variant) {
+    case "destructive":
+      return <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+    case "success":
+      return <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+    case "warning":
+      return <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+    case "info":
+      return <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+    default:
+      return <Info className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+  }
+}
+
 export {
   type ToastProps,
   type ToastActionElement,
@@ -113,4 +130,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  ToastIcon,
 }

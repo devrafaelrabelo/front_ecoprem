@@ -8,8 +8,30 @@ import { BackendStatusIndicator } from "@/components/backend-status-indicator"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sistema EcoPrem",
-  description: "Sistema de gestão EcoPrem",
+  title: process.env.NEXT_PUBLIC_APP_NAME || "App",
+  description: "Sistema de autenticação",
+}
+
+function ThemeScript() {
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+          try {
+            var theme = localStorage.getItem('theme')
+            var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+            var resolvedTheme = theme === 'system' || !theme ? systemTheme : theme
+            
+            if (resolvedTheme === 'dark') {
+              document.documentElement.classList.add('dark')
+            } else {
+              document.documentElement.classList.remove('dark')
+            }
+          } catch (e) {}
+        `,
+      }}
+    />
+  )
 }
 
 export default function RootLayout({
@@ -19,10 +41,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning={true}>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className={inter.className} suppressHydrationWarning>
         <ClientProviders>
-          {children}
-          <BackendStatusIndicator />
+            {children}
+           <BackendStatusIndicator />
         </ClientProviders>
       </body>
     </html>

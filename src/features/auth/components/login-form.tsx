@@ -3,12 +3,11 @@
 import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
-import { Mail, Lock } from "lucide-react"
+import { Mail, Lock, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "../context/auth-context"
 import { authService } from "../services/auth-service"
 import { FloatingLabelInput } from "@/components/ui/floating-label-input"
@@ -27,10 +26,9 @@ export function LoginForm() {
 
   const [shake, setShake] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [loginSuccess, setLoginSuccess] = useState(false)
 
   const { login } = useAuth()
+  const { toast } = useToast()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -49,14 +47,16 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError("")
-    setLoginSuccess(false)
 
     try {
       // Verificar backend primeiro
       const connectionStatus = await authService.checkBackendConnection()
       if (!connectionStatus.isOnline) {
-        setError("Não foi possível conectar ao servidor.")
+        toast({
+          variant: "destructive",
+          title: "Erro de conexão",
+          description: "Não foi possível conectar ao servidor.",
+        })
         setIsLoading(false)
         return
       }
@@ -66,7 +66,12 @@ export function LoginForm() {
 
       if (result.success) {
         console.log("✅ LoginForm: Login bem-sucedido!")
-        setLoginSuccess(true)
+
+        toast({
+          variant: "success",
+          title: "Login bem-sucedido",
+          description: "Você será redirecionado em instantes.",
+        })
 
         // ✅ REDIRECIONAMENTO MAIS RÁPIDO E LIMPO
         setTimeout(() => {
@@ -82,33 +87,29 @@ export function LoginForm() {
         setShake(true)
         setTimeout(() => setShake(false), 500)
 
-        setError(result.message || "Credenciais inválidas")
+        toast({
+          variant: "destructive",
+          title: "Falha no login",
+          description: result.message || "Credenciais inválidas. Tente novamente.",
+        })
+
         setIsLoading(false)
       }
     } catch (error) {
       console.error("❌ LoginForm: Erro:", error)
-      setError("Erro inesperado. Tente novamente.")
+
+      toast({
+        variant: "destructive",
+        title: "Erro inesperado",
+        description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
+      })
+
       setIsLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-6 ${shake ? "animate-shake" : ""}`} autoComplete="on">
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {loginSuccess && (
-        <Alert className="border-green-200 bg-green-50 text-green-800">
-          <div className="flex items-center space-x-2">
-            <LoadingSpinner size="sm" />
-            <AlertDescription>Acesso autorizado! Redirecionando...</AlertDescription>
-          </div>
-        </Alert>
-      )}
-
       <div className="space-y-4">
         <FloatingLabelInput
           id="email"
@@ -124,7 +125,7 @@ export function LoginForm() {
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck="false"
-          disabled={isLoading || loginSuccess}
+          disabled={isLoading}
         />
 
         <FloatingLabelInput
@@ -139,7 +140,7 @@ export function LoginForm() {
           showPasswordToggle
           required
           autoComplete="current-password"
-          disabled={isLoading || loginSuccess}
+          disabled={isLoading}
         />
       </div>
 
@@ -149,7 +150,7 @@ export function LoginForm() {
             id="remember"
             checked={formData.remember}
             onCheckedChange={handleCheckboxChange}
-            disabled={isLoading || loginSuccess}
+            disabled={isLoading}
           />
           <Label htmlFor="remember" className="text-sm cursor-pointer">
             Lembrar de mim
@@ -157,22 +158,17 @@ export function LoginForm() {
         </div>
         <Link
           href="/forgot-password"
-          className={`text-sm text-primary hover:underline ${isLoading || loginSuccess ? "pointer-events-none opacity-50" : ""}`}
+          className={`text-sm text-primary hover:underline ${isLoading ? "pointer-events-none opacity-50" : ""}`}
         >
           Esqueci a senha
         </Link>
       </div>
 
-      <Button type="submit" className="w-full" disabled={isLoading || loginSuccess}>
+      <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? (
           <div className="flex items-center space-x-2">
-            <LoadingSpinner size="sm" />
+            <Loader2 className="h-4 w-4 animate-spin" />
             <span>Verificando credenciais...</span>
-          </div>
-        ) : loginSuccess ? (
-          <div className="flex items-center space-x-2">
-            <LoadingSpinner size="sm" />
-            <span>Redirecionando...</span>
           </div>
         ) : (
           "Entrar"

@@ -3,97 +3,140 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/components/ui/use-toast"
+import { Shield, Loader2 } from "lucide-react"
 
 interface TwoFactorModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (code: string) => Promise<boolean>
-  isLoading?: boolean
 }
 
 export function TwoFactorModal({ isOpen, onClose, onSubmit }: TwoFactorModalProps) {
   const [code, setCode] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  const formatCode = (value: string) => {
+    // Remove tudo que não for número
+    const numbers = value.replace(/\D/g, "")
+    // Limita a 6 dígitos
+    const limited = numbers.slice(0, 6)
+    // Adiciona espaço no meio (000 000)
+    if (limited.length > 3) {
+      return `${limited.slice(0, 3)} ${limited.slice(3)}`
+    }
+    return limited
+  }
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCode(e.target.value)
+    setCode(formatted)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!code || code.length < 6) {
-      setError("Por favor, insira um código válido.")
+    const cleanCode = code.replace(/\s/g, "")
+
+    if (cleanCode.length !== 6) {
+      toast({
+        variant: "destructive",
+        title: "Código inválido",
+        description: "O código deve ter 6 dígitos.",
+      })
       return
     }
 
     setIsLoading(true)
-    setError(null)
 
     try {
-      const success = await onSubmit(code)
-      if (!success) {
-        setError("Código inválido. Por favor, tente novamente.")
+      const success = await onSubmit(cleanCode)
+
+      if (success) {
+        toast({
+          variant: "success",
+          title: "Código verificado",
+          description: "Autenticação de dois fatores confirmada com sucesso.",
+        })
+        setCode("")
+        onClose()
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Código incorreto",
+          description: "O código inserido está incorreto. Tente novamente.",
+        })
       }
-    } catch (err) {
-      setError("Ocorreu um erro ao verificar o código. Por favor, tente novamente.")
-      console.error("Erro na verificação 2FA:", err)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro de verificação",
+        description: "Ocorreu um erro ao verificar o código. Tente novamente.",
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleClose = () => {
+    if (!isLoading) {
+      setCode("")
+      onClose()
+    }
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Autenticação de dois fatores</DialogTitle>
-          <DialogDescription>Por favor, insira o código de verificação enviado para seu dispositivo.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-600" />
+            Autenticação de Dois Fatores
+          </DialogTitle>
+          <DialogDescription>
+            Digite o código de 6 dígitos do seu aplicativo autenticador ou que foi enviado por SMS.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="code">Código de verificação</Label>
             <Input
-              id="twoFactorCode"
-              placeholder="Código de verificação"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="text-center text-lg tracking-widest"
-              maxLength={6}
-              autoComplete="one-time-code"
+              id="code"
+              type="text"
               inputMode="numeric"
-              pattern="[0-9]*"
+              autoComplete="one-time-code"
+              placeholder="000 000"
+              value={code}
+              onChange={handleCodeChange}
+              className="text-center text-lg font-mono tracking-widest"
+              maxLength={7} // 6 dígitos + 1 espaço
+              disabled={isLoading}
               autoFocus
             />
-            <p className="text-sm text-muted-foreground text-center">
-              O código de 6 dígitos foi enviado para seu dispositivo registrado.
-            </p>
+            <p className="text-xs text-muted-foreground">Insira os 6 dígitos do código de verificação</p>
           </div>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <DialogFooter className="sm:justify-between">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading} className="flex-1">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || code.length < 6}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Verificar
+            <Button type="submit" disabled={isLoading || code.replace(/\s/g, "").length !== 6} className="flex-1">
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verificando...
+                </>
+              ) : (
+                "Verificar"
+              )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
