@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
-  isInitialLoading: boolean // Novo estado para loading inicial
+  isInitialLoading: boolean
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; message?: string }>
   logout: () => Promise<void>
   refreshAuth: () => Promise<void>
@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [isInitialLoading, setIsInitialLoading] = useState(true) // Loading inicial
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const lastActivityRef = useRef(Date.now())
@@ -33,6 +33,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!mounted) return
 
     setIsLoading(true)
+
+    const authStatusCookie = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("auth_status="))
+      ?.split("=")[1]
+
+    if (authStatusCookie === "unauthenticated") {
+      console.log("🚫 auth_status cookie indica que usuário NÃO está autenticado")
+      setUser(null)
+      setIsAuthenticated(false)
+      sessionStorage.removeItem("user_data")
+      setIsLoading(false)
+      setIsInitialLoading(false)
+      return
+    }
 
     try {
       console.log("🔍 Verificando autenticação...")
@@ -56,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem("user_data")
     } finally {
       setIsLoading(false)
-      setIsInitialLoading(false) // Finaliza loading inicial
+      setIsInitialLoading(false)
     }
   }, [mounted])
 
@@ -71,11 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.success) {
         console.log("✅ Login bem-sucedido.")
-
-        // Mostrar loading por um tempo para melhor UX
         await new Promise((resolve) => setTimeout(resolve, 1500))
 
-        // Só redirecionar se estivermos na página de login
         if (window.location.pathname === "/login") {
           console.log("🔀 Login bem-sucedido na página de login, redirecionando...")
           window.location.href = "/"
