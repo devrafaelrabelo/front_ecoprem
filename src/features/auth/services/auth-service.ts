@@ -15,7 +15,10 @@ export interface AuthResponse {
   message?: string
   user?: User
   backendStatus?: string
+  requires2FA?: boolean
+  sessionId?: string
 }
+
 // Função auxiliar para analisar os dados do usuário
 const parseUser = (data: any): User => {
   const userData = data.user || data
@@ -81,6 +84,26 @@ export const authService = {
       })
 
       console.log("📡 Status da resposta Spring:", response.status)
+
+      // ✅ Tratar 2FA (Status 206 - Partial Content)
+      if (response.status === 206) {
+        try {
+          const data = await response.json()
+          console.log("🔐 2FA necessário:", data)
+
+          if (data["2fa_required"] === true) {
+            return {
+              success: false,
+              requires2FA: true,
+              message: data.message || "Autenticação de dois fatores necessária",
+              sessionId: data.sessionId || data.session_id,
+              backendStatus: "🔐 2FA Requerido",
+            }
+          }
+        } catch (parseError) {
+          console.error("❌ Erro ao processar resposta 2FA:", parseError)
+        }
+      }
 
       if (response.ok) {
         let userData: any = {}
@@ -152,50 +175,126 @@ export const authService = {
   },
 
   /**
+   * Verifica o código de autenticação de dois fatores
+   */
+  verify2FA: async (code: string, rememberMe = false): Promise<AuthResponse> => {
+    try {
+      console.log("🔐 Verificando código 2FA...")
+
+      const response = await fetch(`${config.api.baseUrl}/api/auth/2fa/validate-login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({
+          twoFactorCode: code,
+          rememberMe: rememberMe, // ✅ Usar o valor do login original
+        }),
+        credentials: "include", // Essencial para cookies HttpOnly
+        signal: AbortSignal.timeout(10000),
+      })
+
+      console.log("📡 Status da verificação 2FA:", response.status)
+
+      if (response.ok) {
+        let userData: any = {}
+        try {
+          const responseText = await response.text()
+          if (responseText.trim()) {
+            userData = JSON.parse(responseText)
+          }
+        } catch (parseError) {
+          console.warn("⚠️ Resposta sem JSON, mas cookies podem ter sido definidos.")
+        }
+
+        // Aguardar processamento dos cookies HttpOnly pelo navegador
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        const user: User = {
+          id: userData.id || userData.userId,
+          username: userData.username || userData.login,
+          fullName: userData.fullName || userData.nome || userData.name,
+          email: userData.email,
+          roles: userData.roles || userData.authorities || [],
+        }
+
+        return {
+          success: true,
+          user: user,
+          backendStatus: "✅ 2FA Verificado",
+        }
+      }
+
+      // Tratar erros de 2FA
+      let errorMessage = "Código de verificação inválido"
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.message || errorData.error || errorMessage
+      } catch {
+        switch (response.status) {
+          case 401:
+            errorMessage = "Código de verificação incorreto"
+            break
+          case 403:
+            errorMessage = "Sessão expirada. Faça login novamente."
+            break
+          case 429:
+            errorMessage = "Muitas tentativas. Tente novamente em alguns minutos."
+            break
+          default:
+            errorMessage = `Erro HTTP ${response.status}`
+        }
+      }
+
+      return {
+        success: false,
+        message: errorMessage,
+        backendStatus: `⚠️ Erro 2FA ${response.status}`,
+      }
+    } catch (error: any) {
+      console.error("❌ Erro na verificação 2FA:", error)
+
+      if (error.name === "TimeoutError") {
+        return {
+          success: false,
+          message: "Timeout: O servidor demorou muito para responder.",
+        }
+      }
+
+      return {
+        success: false,
+        message: "Erro de conexão com o servidor.",
+      }
+    }
+  },
+
+  /**
    * Obtém o perfil do usuário atual validando os cookies HttpOnly com o backend.
    * Esta é a ÚNICA forma segura de verificar autenticação com cookies HttpOnly.
    */
   getCurrentUser: async (): Promise<User | null> => {
-  if (!isClient) return null
+    if (!isClient) return null
 
-  // 🔍 Verifica o cookie auth_status antes de chamar o backend
-  const authStatusCookie = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("auth_status="))
-    ?.split("=")[1]
+    // 🔍 Verifica o cookie auth_status antes de chamar o backend
+    const authStatusCookie = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("auth_status="))
+      ?.split("=")[1]
 
-  if (authStatusCookie === "unauthenticated") {
-    console.log("⛔ auth_status indica que usuário não está autenticado — ignorando chamada")
-    return null
-  }
-
-  try {
-    console.log("🔄 Verificando usuário atual com backend...")
-
-    const response = await fetch(`${config.api.baseUrl}/api/auth/validate`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-        "User-Agent": navigator.userAgent,
-      },
-      credentials: "include",
-      signal: AbortSignal.timeout(5000),
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      console.log("✅ Usuário validado com sucesso")
-      return parseUser(data)
+    if (authStatusCookie === "unauthenticated") {
+      console.log("⛔ auth_status indica que usuário não está autenticado — ignorando chamada")
+      return null
     }
 
-    if (response.status === 401 || response.status === 400) {
-      console.log("🔁 Token expirado. Tentando refresh...")
+    try {
+      console.log("🔄 Verificando usuário atual com backend...")
 
-      const refreshResponse = await fetch(`${config.api.baseUrl}/api/auth/refresh`, {
-        method: "POST",
+      const response = await fetch(`${config.api.baseUrl}/api/auth/me`, {
+        method: "GET",
         headers: {
-          "Content-Type": "application/json",
+          Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest",
           "User-Agent": navigator.userAgent,
         },
@@ -203,45 +302,65 @@ export const authService = {
         signal: AbortSignal.timeout(5000),
       })
 
-      if (refreshResponse.ok) {
-        console.log("✅ Refresh token aceito. Revalidando...")
+      if (response.ok) {
+        const data = await response.json()
+        console.log("✅ Usuário validado com sucesso")
+        return parseUser(data)
+      }
 
-        await new Promise((resolve) => setTimeout(resolve, 200))
+      if (response.status === 401 || response.status === 400) {
+        console.log("🔁 Token expirado. Tentando refresh...")
 
-        const retry = await fetch(`${config.api.baseUrl}/api/auth/me`, {
-          method: "GET",
+        const refreshResponse = await fetch(`${config.api.baseUrl}/api/auth/refresh`, {
+          method: "POST",
           headers: {
-            Accept: "application/json",
+            "Content-Type": "application/json",
             "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": navigator.userAgent,
           },
           credentials: "include",
           signal: AbortSignal.timeout(5000),
         })
 
-        if (retry.ok) {
-          const data = await retry.json()
-          console.log("✅ Revalidação após refresh bem-sucedida")
+        if (refreshResponse.ok) {
+          console.log("✅ Refresh token aceito. Revalidando...")
 
-          if (window.location.pathname === "/login") {
-            window.location.reload()
-            return null
+          await new Promise((resolve) => setTimeout(resolve, 200))
+
+          const retry = await fetch(`${config.api.baseUrl}/api/auth/session`, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            credentials: "include",
+            signal: AbortSignal.timeout(5000),
+          })
+
+          if (retry.ok) {
+            const data = await retry.json()
+            console.log("✅ Revalidação após refresh bem-sucedida")
+
+            if (window.location.pathname === "/login") {
+              window.location.reload()
+              return null
+            }
+
+            return parseUser(data)
           }
-
-          return parseUser(data)
         }
+
+        console.warn("🚫 Refresh falhou. Usuário não autenticado.")
+        return null
       }
 
-      console.warn("🚫 Refresh falhou. Usuário não autenticado.")
+      console.warn("🚫 Validação falhou. Status:", response.status)
+      return null
+    } catch (error) {
+      console.error("❌ Erro ao validar usuário:", error)
       return null
     }
-
-    console.warn("🚫 Validação falhou. Status:", response.status)
-    return null
-  } catch (error) {
-    console.error("❌ Erro ao validar usuário:", error)
-    return null
-  }
-},
+  },
 
   /**
    * Realiza o logout no backend Spring Boot.
