@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useTheme } from "@/hooks/use-theme"
 import { BackendStatusIndicator } from "@/components/backend-status-indicator"
+import { CreateUserForm } from "@/components/create-user-form"
 import {
   Loader2,
   TestTube,
@@ -63,6 +64,7 @@ import {
   PanelLeft,
   ScrollText,
   AlertTriangle,
+  UserPlus,
 } from "lucide-react"
 
 export default function TestPage() {
@@ -231,7 +233,7 @@ export default function TestPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="notifications" className="w-full">
-              <TabsList className="grid grid-cols-5 mb-4">
+              <TabsList className="grid grid-cols-6 mb-4">
                 <TabsTrigger value="notifications" className="flex items-center gap-1">
                   <Bell className="h-4 w-4" />
                   <span className="hidden sm:inline">Notificações</span>
@@ -247,6 +249,10 @@ export default function TestPage() {
                 <TabsTrigger value="forms" className="flex items-center gap-1">
                   <Layers className="h-4 w-4" />
                   <span className="hidden sm:inline">Formulários</span>
+                </TabsTrigger>
+                <TabsTrigger value="users" className="flex items-center gap-1">
+                  <UserPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Usuários</span>
                 </TabsTrigger>
                 <TabsTrigger value="extras" className="flex items-center gap-1">
                   <User className="h-4 w-4" />
@@ -465,6 +471,12 @@ export default function TestPage() {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Tab de Usuários */}
+              <TabsContent value="users" className="space-y-4">
+                <h3 className="text-lg font-medium">Formulário de Criação de Usuário</h3>
+                <CreateUserForm compact={true} />
               </TabsContent>
 
               {/* Tab de Extras */}
