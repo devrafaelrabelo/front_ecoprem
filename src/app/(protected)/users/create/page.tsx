@@ -26,21 +26,15 @@ interface Permission {
 interface CreateUserData {
   firstName: string
   lastName: string
-  fullName: string
   socialName: string
   username: string
   email: string
-  emailVerified: boolean
   password: string
   origin: string
   interfaceTheme: string
   timezone: string
   notificationsEnabled: boolean
-  loginAttempts: number
-  firstLogin: boolean
   preferredLanguage: string
-  passwordCompromised: boolean
-  twoFactorEnabled: boolean
   roles: string[]
   permissions: Permission[]
 }
@@ -48,21 +42,15 @@ interface CreateUserData {
 const initialFormData: CreateUserData = {
   firstName: "",
   lastName: "",
-  fullName: "",
   socialName: "",
   username: "",
   email: "",
-  emailVerified: false,
   password: "",
-  origin: "web",
+  origin: "",
   interfaceTheme: "light",
   timezone: "America/Sao_Paulo",
   notificationsEnabled: true,
-  loginAttempts: 0,
-  firstLogin: true,
   preferredLanguage: "pt_BR",
-  passwordCompromised: false,
-  twoFactorEnabled: false,
   roles: [],
   permissions: [],
 }
@@ -104,6 +92,12 @@ const userGroupOptions = {
   ],
 }
 
+const originOptions = [
+  { value: "admin", label: "Admin" },
+  { value: "gestor", label: "Gestor" },
+  { value: "supervisor", label: "Supervisor" },
+]
+
 export default function CreateUserPage() {
   const [formData, setFormData] = useState<CreateUserData>(initialFormData)
   const [isLoading, setIsLoading] = useState(false)
@@ -116,18 +110,10 @@ export default function CreateUserPage() {
   const { toast } = useToast()
 
   const handleInputChange = (field: keyof CreateUserData, value: any) => {
-    setFormData((prev) => {
-      const newData = { ...prev, [field]: value }
-
-      // Auto-gerar fullName quando firstName ou lastName mudam
-      if (field === "firstName" || field === "lastName") {
-        const firstName = field === "firstName" ? value : prev.firstName
-        const lastName = field === "lastName" ? value : prev.lastName
-        newData.fullName = `${firstName} ${lastName}`.trim()
-      }
-
-      return newData
-    })
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
   }
 
   // Nova função com lógica específica para ADMIN + uma role
@@ -350,17 +336,7 @@ export default function CreateUserPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nome Completo</Label>
-                <Input
-                  id="fullName"
-                  value={formData.fullName}
-                  onChange={(e) => handleInputChange("fullName", e.target.value)}
-                  placeholder="Nome completo (auto-gerado)"
-                />
-              </div>
-
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="socialName">Nome Social</Label>
                 <Input
                   id="socialName"
@@ -418,15 +394,16 @@ export default function CreateUserPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="origin">Origem</Label>
-                <Select value={formData.origin} onValueChange={(value) => handleInputChange("origin", value)}>
+                <Select value={formData.origin} onValueChange={(value) => handleInputChange("origin", value)} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a origem" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="web">Web</SelectItem>
-                    <SelectItem value="system">Sistema</SelectItem>
-                    <SelectItem value="ldap">LDAP</SelectItem>
-                    <SelectItem value="api">API</SelectItem>
+                    {originOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -482,9 +459,6 @@ export default function CreateUserPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="America/Sao_Paulo">São Paulo (GMT-3)</SelectItem>
-                      <SelectItem value="America/New_York">Nova York (GMT-5)</SelectItem>
-                      <SelectItem value="Europe/London">Londres (GMT+0)</SelectItem>
-                      <SelectItem value="Asia/Tokyo">Tóquio (GMT+9)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -492,18 +466,7 @@ export default function CreateUserPage() {
 
               <Separator />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Email Verificado</Label>
-                    <p className="text-sm text-muted-foreground">Marcar se o email já foi verificado</p>
-                  </div>
-                  <Switch
-                    checked={formData.emailVerified}
-                    onCheckedChange={(checked) => handleInputChange("emailVerified", checked)}
-                  />
-                </div>
-
+              <div className="grid grid-cols-1 gap-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Notificações Habilitadas</Label>
@@ -512,28 +475,6 @@ export default function CreateUserPage() {
                   <Switch
                     checked={formData.notificationsEnabled}
                     onCheckedChange={(checked) => handleInputChange("notificationsEnabled", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Primeiro Login</Label>
-                    <p className="text-sm text-muted-foreground">Forçar alteração de senha no primeiro acesso</p>
-                  </div>
-                  <Switch
-                    checked={formData.firstLogin}
-                    onCheckedChange={(checked) => handleInputChange("firstLogin", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Autenticação 2FA</Label>
-                    <p className="text-sm text-muted-foreground">Habilitar autenticação de dois fatores</p>
-                  </div>
-                  <Switch
-                    checked={formData.twoFactorEnabled}
-                    onCheckedChange={(checked) => handleInputChange("twoFactorEnabled", checked)}
                   />
                 </div>
               </div>

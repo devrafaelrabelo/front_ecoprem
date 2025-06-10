@@ -272,3 +272,42 @@
 .animate-shake {
   animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
+
+/* Animações específicas para o FloatingLabelInput */
+@keyframes labelFloat {
+  from {
+    transform: translateY(-50%) scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateY(-50%) scale(0.75);
+    opacity: 1;
+  }
+}
+
+.floating-label-animation {
+  animation: labelFloat 0.2s ease forwards;
+}
+
+/* Melhorar a transição do label quando está flutuando */
+.floating-label {
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, font-size 0.2s ease, top 0.2s ease;
+  transform-origin: left top;
+}
+
+/* Efeito de ripple para o foco do input */
+@keyframes inputFocusRipple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(44, 79, 187, 0.2);
+  }
+  70% {
+    box-shadow: 0 0 0 4px rgba(44, 79, 187, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(44, 79, 187, 0);
+  }
+}
+
+.input-focus-ripple {
+  animation: inputFocusRipple 0.8s ease-out;
+}

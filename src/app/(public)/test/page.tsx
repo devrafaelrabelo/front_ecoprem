@@ -27,7 +27,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { FloatingLabelInput } from "@/components/ui/floating-label-input"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -45,6 +44,7 @@ import {
 import { useTheme } from "@/hooks/use-theme"
 import { BackendStatusIndicator } from "@/components/backend-status-indicator"
 import { CreateUserForm } from "@/components/create-user-form"
+import { UserRequestForm } from "@/components/user-request-form"
 import {
   Loader2,
   TestTube,
@@ -233,7 +233,7 @@ export default function TestPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="notifications" className="w-full">
-              <TabsList className="grid grid-cols-6 mb-4">
+              <TabsList className="grid grid-cols-7 mb-4">
                 <TabsTrigger value="notifications" className="flex items-center gap-1">
                   <Bell className="h-4 w-4" />
                   <span className="hidden sm:inline">Notificações</span>
@@ -253,6 +253,10 @@ export default function TestPage() {
                 <TabsTrigger value="users" className="flex items-center gap-1">
                   <UserPlus className="h-4 w-4" />
                   <span className="hidden sm:inline">Usuários</span>
+                </TabsTrigger>
+                <TabsTrigger value="request" className="flex items-center gap-1">
+                  <UserPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Solicitação</span>
                 </TabsTrigger>
                 <TabsTrigger value="extras" className="flex items-center gap-1">
                   <User className="h-4 w-4" />
@@ -454,20 +458,16 @@ export default function TestPage() {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Floating Label Inputs</Label>
+                    <Label>Inputs com Label</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FloatingLabelInput
-                        id="floating-email"
-                        type="email"
-                        label="Email"
-                        placeholder="Digite seu email"
-                      />
-                      <FloatingLabelInput
-                        id="floating-password"
-                        type="password"
-                        label="Senha"
-                        placeholder="Digite sua senha"
-                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="test-email">Email</Label>
+                        <Input id="test-email" type="email" placeholder="Digite seu email" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="test-password">Senha</Label>
+                        <Input id="test-password" type="password" placeholder="Digite sua senha" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -477,6 +477,12 @@ export default function TestPage() {
               <TabsContent value="users" className="space-y-4">
                 <h3 className="text-lg font-medium">Formulário de Criação de Usuário</h3>
                 <CreateUserForm compact={true} />
+              </TabsContent>
+
+              {/* Tab de Solicitação */}
+              <TabsContent value="request" className="space-y-4">
+                <h3 className="text-lg font-medium">Solicitação de Usuário</h3>
+                <UserRequestForm />
               </TabsContent>
 
               {/* Tab de Extras */}

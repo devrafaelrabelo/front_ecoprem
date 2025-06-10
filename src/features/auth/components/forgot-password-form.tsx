@@ -4,17 +4,15 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Mail, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { DynamicIconInput } from "@/components/ui/dynamic-icon-input"
 import { useToast } from "@/components/ui/use-toast"
-import { FloatingLabelInput } from "@/components/ui/floating-label-input"
 
 export function ForgotPasswordForm() {
-  const [email, setEmail] = useState("")
+  const [identifier, setIdentifier] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [emailError, setEmailError] = useState(false)
+  const [identifierError, setIdentifierError] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -22,14 +20,14 @@ export function ForgotPasswordForm() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Validação básica de email
-    if (!email || !email.includes("@")) {
-      setEmailError(true)
+    // Validação básica - não pode estar vazio
+    if (!identifier || identifier.trim() === "") {
+      setIdentifierError(true)
       setIsSubmitting(false)
       toast({
         variant: "destructive",
         title: "Erro de validação",
-        description: "Por favor, insira um endereço de email válido.",
+        description: "Por favor, informe seu nome de usuário ou email.",
       })
       return
     }
@@ -39,8 +37,8 @@ export function ForgotPasswordForm() {
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
       toast({
-        title: "Email enviado",
-        description: "Instruções de recuperação foram enviadas para seu email.",
+        title: "Solicitação enviada",
+        description: "Instruções de recuperação foram enviadas para seu email cadastrado.",
         variant: "success",
       })
 
@@ -51,7 +49,7 @@ export function ForgotPasswordForm() {
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível enviar o email de recuperação. Tente novamente.",
+        description: "Não foi possível processar sua solicitação. Tente novamente.",
         variant: "destructive",
       })
       setIsSubmitting(false)
@@ -59,37 +57,27 @@ export function ForgotPasswordForm() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value)
-    if (emailError) setEmailError(false)
+    setIdentifier(e.target.value)
+    if (identifierError) setIdentifierError(false)
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <FloatingLabelInput
-          id="email"
-          name="email"
-          type="email"
-          label="Email"
-          value={email}
-          onChange={handleChange}
-          error={emailError}
-          icon={<Mail className="h-4 w-4" />}
-          required
-          autoComplete="email"
-        />
-      </div>
+      <DynamicIconInput
+        id="identifier"
+        name="identifier"
+        label="Usuário ou Email"
+        placeholder="Digite seu usuário ou email"
+        value={identifier}
+        onChange={handleChange}
+        error={identifierError}
+        errorMessage="Por favor, informe seu nome de usuário ou email."
+        required
+      />
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Enviando..." : "Enviar instruções"}
+        {isSubmitting ? "Enviando..." : "Recuperar acesso"}
       </Button>
-
-      <div className="text-center">
-        <Link href="/login" className="inline-flex items-center text-sm text-custom-secondary hover:underline">
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Voltar para o login
-        </Link>
-      </div>
     </form>
   )
 }

@@ -3,15 +3,16 @@
 import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
-import { Mail, Lock, Loader2 } from "lucide-react"
+import { Lock, Loader2, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "../context/auth-context"
 import { authService } from "../services/auth-service"
-import { FloatingLabelInput } from "@/components/ui/floating-label-input"
 import { TwoFactorModal } from "./two-factor-modal"
+import { DynamicIconInput } from "@/components/ui/dynamic-icon-input"
 
 export function LoginForm() {
   const [formData, setFormData] = useState({
@@ -27,6 +28,7 @@ export function LoginForm() {
 
   const [shake, setShake] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // ✅ Estados para 2FA
   const [show2FAModal, setShow2FAModal] = useState(false)
@@ -172,37 +174,53 @@ export function LoginForm() {
     <>
       <form onSubmit={handleSubmit} className={`space-y-6 ${shake ? "animate-shake" : ""}`} autoComplete="on">
         <div className="space-y-4">
-          <FloatingLabelInput
+          <DynamicIconInput
             id="email"
             name="email"
-            label="Email"
             type="email"
+            label="Usuário ou Email"
+            placeholder="Digite seu usuário ou email"
             value={formData.email}
             onChange={handleChange}
             error={fieldErrors.email}
-            icon={<Mail className="h-4 w-4" />}
             required
-            autoComplete="email"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck="false"
             disabled={isLoading}
           />
 
-          <FloatingLabelInput
-            id="password"
-            name="password"
-            type="password"
-            label="Senha"
-            value={formData.password}
-            onChange={handleChange}
-            error={fieldErrors.password}
-            icon={<Lock className="h-4 w-4" />}
-            showPasswordToggle
-            required
-            autoComplete="current-password"
-            disabled={isLoading}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="password" className={fieldErrors.password ? "text-red-500" : ""}>
+              Senha
+            </Label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                <Lock className="h-4 w-4" />
+              </div>
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={handleChange}
+                className={`pl-10 pr-10 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                required
+                disabled={isLoading}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">

@@ -24,21 +24,15 @@ interface Permission {
 interface CreateUserData {
   firstName: string
   lastName: string
-  fullName: string
   socialName: string
   username: string
   email: string
-  emailVerified: boolean
   password: string
   origin: string
   interfaceTheme: string
   timezone: string
   notificationsEnabled: boolean
-  loginAttempts: number
-  firstLogin: boolean
   preferredLanguage: string
-  passwordCompromised: boolean
-  twoFactorEnabled: boolean
   roles: string[]
   permissions: Permission[]
 }
@@ -46,21 +40,15 @@ interface CreateUserData {
 const initialFormData: CreateUserData = {
   firstName: "",
   lastName: "",
-  fullName: "",
   socialName: "",
   username: "",
   email: "",
-  emailVerified: false,
   password: "",
-  origin: "web",
+  origin: "",
   interfaceTheme: "light",
   timezone: "America/Sao_Paulo",
   notificationsEnabled: true,
-  loginAttempts: 0,
-  firstLogin: true,
   preferredLanguage: "pt_BR",
-  passwordCompromised: false,
-  twoFactorEnabled: false,
   roles: [],
   permissions: [],
 }
@@ -102,6 +90,12 @@ const userGroupOptions = {
   ],
 }
 
+const originOptions = [
+  { value: "admin", label: "Admin" },
+  { value: "gestor", label: "Gestor" },
+  { value: "supervisor", label: "Supervisor" },
+]
+
 interface CreateUserFormProps {
   compact?: boolean
 }
@@ -117,18 +111,10 @@ export function CreateUserForm({ compact = false }: CreateUserFormProps) {
   const { toast } = useToast()
 
   const handleInputChange = (field: keyof CreateUserData, value: any) => {
-    setFormData((prev) => {
-      const newData = { ...prev, [field]: value }
-
-      // Auto-gerar fullName quando firstName ou lastName mudam
-      if (field === "firstName" || field === "lastName") {
-        const firstName = field === "firstName" ? value : prev.firstName
-        const lastName = field === "lastName" ? value : prev.lastName
-        newData.fullName = `${firstName} ${lastName}`.trim()
-      }
-
-      return newData
-    })
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
   }
 
   // Nova função com lógica específica para ADMIN + uma role
@@ -329,14 +315,6 @@ export function CreateUserForm({ compact = false }: CreateUserFormProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Nome Completo</Label>
-              <Input
-                placeholder="Auto-gerado"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange("fullName", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
               <Label className="text-xs">Nome Social</Label>
               <Input
                 placeholder="Opcional"
@@ -363,7 +341,7 @@ export function CreateUserForm({ compact = false }: CreateUserFormProps) {
                 required
               />
             </div>
-            <div className="space-y-1 md:col-span-2">
+            <div className="space-y-1">
               <Label className="text-xs">Senha *</Label>
               <Input
                 type="password"
@@ -372,6 +350,21 @@ export function CreateUserForm({ compact = false }: CreateUserFormProps) {
                 onChange={(e) => handleInputChange("password", e.target.value)}
                 required
               />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Origem</Label>
+              <Select value={formData.origin} onValueChange={(value) => handleInputChange("origin", value)} required>
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {originOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -410,34 +403,24 @@ export function CreateUserForm({ compact = false }: CreateUserFormProps) {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fuso Horário</Label>
+                <Select value={formData.timezone} onValueChange={(value) => handleInputChange("timezone", value)}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="America/Sao_Paulo">São Paulo (GMT-3)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Notificações</Label>
                 <Switch
                   checked={formData.notificationsEnabled}
                   onCheckedChange={(checked) => handleInputChange("notificationsEnabled", checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">2FA</Label>
-                <Switch
-                  checked={formData.twoFactorEnabled}
-                  onCheckedChange={(checked) => handleInputChange("twoFactorEnabled", checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Email Verificado</Label>
-                <Switch
-                  checked={formData.emailVerified}
-                  onCheckedChange={(checked) => handleInputChange("emailVerified", checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Primeiro Login</Label>
-                <Switch
-                  checked={formData.firstLogin}
-                  onCheckedChange={(checked) => handleInputChange("firstLogin", checked)}
                 />
               </div>
             </div>
