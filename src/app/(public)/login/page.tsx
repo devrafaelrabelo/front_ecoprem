@@ -15,7 +15,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Lado esquerdo - Formulário de login */}
-      <div className="w-full md:w-1/2 flex flex-col justify-center items-center p-8 md:p-16">
+      <div className="w-full md:w-1/2 flex flex-col justify-center items-center p-8 md:p-16 bg-background">
         <div className="w-full max-w-md">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center">
@@ -24,28 +24,30 @@ export default function LoginPage() {
                 alt={`${APP_NAME} Logo`}
                 className="h-8 w-8 object-contain mr-2"
               />
-              <h1 className="text-2xl font-bold">{APP_NAME}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{APP_NAME}</h1>
             </div>
           </div>
 
-          <h1 className="text-3xl font-bold mb-2">Bem-vindo de volta</h1>
-          <p className="text-muted-foreground mb-8">Acesse sua conta para continuar</p>
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h1 className="text-3xl font-bold mb-2 text-card-foreground">Bem-vindo de volta</h1>
+            <p className="text-muted-foreground mb-8">Acesse sua conta para continuar</p>
 
-          <LoginForm />
+            <LoginForm />
 
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            <p>
-              Precisa de ajuda?{" "}
-              <a href="#" className="text-primary hover:underline">
-                Entre em contato com o suporte
-              </a>
-            </p>
+            <div className="mt-8 text-center text-sm text-muted-foreground">
+              <p>
+                Precisa de ajuda?{" "}
+                <a href="#" className="text-primary hover:underline">
+                  Entre em contato com o suporte
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Lado direito - Visual */}
-      <div className="hidden md:flex w-1/2 overflow-hidden">
+      <div className="hidden md:flex w-1/2 bg-gradient-to-br from-custom-primary to-custom-secondary overflow-hidden relative">
         <div className="relative z-10 flex flex-col justify-center items-center p-16 text-white">
           <div className="mb-8">
             <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center mb-4">

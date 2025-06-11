@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ClientProviders } from "@/components/client-providers"
 import { BackendStatusIndicator } from "@/components/backend-status-indicator"
+import { ThemeSelector } from "@/components/theme-selector"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -44,8 +45,11 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>        
         <ClientProviders>
+          <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+        <ThemeSelector />
+          </div>
             {children}
            <BackendStatusIndicator />
         </ClientProviders>

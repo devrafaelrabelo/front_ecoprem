@@ -16,6 +16,9 @@ export function ForgotPasswordForm() {
   const router = useRouter()
   const { toast } = useToast()
 
+  // Regex para validar email do domínio bemprotege.com.br
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@bemprotege\.com\.br$/
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -32,13 +35,27 @@ export function ForgotPasswordForm() {
       return
     }
 
+    // Verificar se é email
+    const isEmail = identifier.includes("@")
+
+    // Se for email, validar com regex
+    if (isEmail && !emailRegex.test(identifier)) {
+      setIsSubmitting(false)
+      toast({
+        variant: "destructive",
+        title: "Erro no envio",
+        description: "Não foi possível processar sua solicitação. Verifique os dados informados.",
+      })
+      return
+    }
+
     try {
-      // Simulação de envio de email
+      // Simulação de envio
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
       toast({
         title: "Solicitação enviada",
-        description: "Instruções de recuperação foram enviadas para seu email cadastrado.",
+        description: "Instruções de recuperação foram enviadas para o email cadastrado.",
         variant: "success",
       })
 
@@ -52,6 +69,7 @@ export function ForgotPasswordForm() {
         description: "Não foi possível processar sua solicitação. Tente novamente.",
         variant: "destructive",
       })
+    } finally {
       setIsSubmitting(false)
     }
   }

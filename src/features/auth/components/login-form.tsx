@@ -51,8 +51,33 @@ export function LoginForm() {
     setFormData((prev) => ({ ...prev, remember: checked }))
   }
 
+  const validateEmailOrUser = (input: string): boolean => {
+    // Se contém @, valida como email com regex específico
+    if (input.includes("@")) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@bemprotege\.com\.br$/
+      return emailRegex.test(input)
+    }
+    // Se não contém @, considera como usuário válido
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validar email/usuário antes de prosseguir
+    if (!validateEmailOrUser(formData.email)) {
+      setFieldErrors({ email: true, password: false })
+      setShake(true)
+      setTimeout(() => setShake(false), 500)
+
+      toast({
+        variant: "destructive",
+        title: "Erro de autenticação",
+        description: "Não foi possível processar sua solicitação. Verifique os dados informados.",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -177,7 +202,7 @@ export function LoginForm() {
           <DynamicIconInput
             id="email"
             name="email"
-            type="email"
+            type="text"
             label="Usuário ou Email"
             placeholder="Digite seu usuário ou email"
             value={formData.email}
