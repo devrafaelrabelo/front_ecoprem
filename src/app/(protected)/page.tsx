@@ -1,32 +1,34 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/features/auth/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { HelpCircle, LogOut } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { useSessionStorage } from "@/hooks/use-session-storage"
 import { useEffect } from "react"
+import { useAuth } from "@/features/auth/context/auth-context"
+import { LogOut } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { APP_NAME } from "@/config"
 
 export default function SystemSelectionPage() {
   const router = useRouter()
   const { isAuthenticated, logout, user, isLoading } = useAuth()
   const { toast } = useToast()
+  const [selectedSystem, setSelectedSystem] = useSessionStorage<string | null>("selectedSystem", null)
 
-  // Este useEffect garante que, se o componente terminar de carregar
-  // e o usuário não estiver autenticado, ele será redirecionado.
-  // Isso atua como um fallback robusto caso o middleware não redirecione
-  // por alguma razão (ex: navegação client-side, race condition).
+  // Redirecionamento se não autenticado (fallback)
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      console.log("SystemSelectionPage: Não autenticado após carregamento, redirecionando para login.")
       router.replace("/login")
     }
   }, [isLoading, isAuthenticated, router])
 
-  // Mostrar loading enquanto verifica autenticação
-  // Se isLoading for true, sempre mostra o spinner.
+  // Redirecionar para o dashboard se um sistema já estiver selecionado
+  useEffect(() => {
+    if (selectedSystem && isAuthenticated) {
+      router.replace("/dashboard")
+    }
+  }, [selectedSystem, isAuthenticated, router])
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -38,19 +40,13 @@ export default function SystemSelectionPage() {
     )
   }
 
-  // Se chegamos aqui, isLoading é false.
-  // Se !isAuthenticated, o useEffect acima já disparou (ou vai disparar imediatamente) o redirecionamento.
-  // Portanto, podemos retornar null aqui, pois a página será substituída em breve.
   if (!isAuthenticated) {
-    return null
+    return null // Redirecionado pelo useEffect
   }
 
-  // Se chegamos aqui, significa que isLoading é false E isAuthenticated é true.
-  // Agora podemos renderizar o conteúdo da página.
-
-  // Função para navegar para a página de ajuda
-  const goToHelp = () => {
-    router.push("/help")
+  const handleSystemSelect = (system: string) => {
+    setSelectedSystem(system)
+    router.push("/dashboard")
   }
 
   const handleLogout = async () => {
@@ -71,37 +67,32 @@ export default function SystemSelectionPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Conteúdo principal - Agora com classes responsivas */}
-      <div className="flex flex-1 items-center justify-center p-4 sm:p-6 md:p-8">
-        <Card className="w-full max-w-[95%] sm:max-w-md md:max-w-lg">
-          <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl md:text-3xl">Bem-vindo ao {APP_NAME}</CardTitle>
-            <CardDescription className="text-sm sm:text-base">
-              {user?.name ? `Olá, ${user.name}!` : "Olá!"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm sm:text-base text-muted-foreground">
-              Esta é a base para seus projetos futuros. Atualmente, o sistema está em modo simplificado sem módulos
-              adicionais.
-            </p>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Consulte a documentação para aprender como expandir este projeto com novos módulos e funcionalidades.
-            </p>
-          </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
-            <Button className="w-full sm:w-auto" variant="outline" onClick={goToHelp}>
-              <HelpCircle className="mr-2 h-4 w-4" />
-              Documentação
-            </Button>
-            <Button className="w-full sm:w-auto" variant="default" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background text-foreground">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold">Bem-vindo, {user?.name || "Usuário"}!</CardTitle>
+          <CardDescription className="text-muted-foreground mt-2">
+            Selecione o sistema que deseja acessar:
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handleSystemSelect("COMERCIAL")}>
+            Sistema Comercial
+          </Button>
+          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handleSystemSelect("RH")}>
+            Sistema RH
+          </Button>
+          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handleSystemSelect("TI")}>
+            Sistema TI
+          </Button>
+        </CardContent>
+        <CardFooter className="flex justify-end pt-4">
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sair
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

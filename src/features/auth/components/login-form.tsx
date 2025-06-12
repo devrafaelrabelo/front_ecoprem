@@ -54,7 +54,8 @@ export function LoginForm() {
   const validateEmailOrUser = (input: string): boolean => {
     // Se contém @, valida como email com regex específico
     if (input.includes("@")) {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@bemprotege\.com\.br$/
+      // const emailRegex = /^[a-zA-Z0-9._%+-]+@bemprotege\.com\.br$/
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@example\.com$/
       return emailRegex.test(input)
     }
     // Se não contém @, considera como usuário válido

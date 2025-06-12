@@ -8,12 +8,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, disableAutofill = true, autoComplete, name, ...props }, ref) => {
-    // Gerar um nome aleatório para o campo se disableAutofill for true e não houver nome específico
-    const randomName = React.useMemo(() => {
-      return disableAutofill && !name ? `field_${Math.random().toString(36).substring(2, 11)}` : name
-    }, [disableAutofill, name])
-
+  ({ className, type, disableAutofill = true, autoComplete, ...props }, ref) => {
     // Determinar o valor de autoComplete
     const autoCompleteValue = disableAutofill
       ? "new-password" // Mais eficaz que "off" para bloquear autofill
@@ -31,7 +26,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         autoCapitalize={disableAutofill ? "off" : undefined}
         spellCheck={disableAutofill ? false : undefined}
         data-form-type={disableAutofill ? "other" : undefined}
-        name={randomName}
         ref={ref}
         {...props}
       />

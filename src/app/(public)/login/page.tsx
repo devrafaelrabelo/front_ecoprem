@@ -28,27 +28,30 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <h1 className="text-3xl font-bold mb-2 text-card-foreground">Bem-vindo de volta</h1>
-            <p className="text-muted-foreground mb-8">Acesse sua conta para continuar</p>
+          {/* Adicione mx-auto aqui para centralizar o card do formulário */}
+          <div className="w-full max-w-md mx-auto">
+            <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+              <h1 className="text-3xl font-bold mb-2 text-card-foreground">Bem-vindo de volta</h1>
+              <p className="text-muted-foreground mb-8">Acesse sua conta para continuar</p>
 
-            <LoginForm />
+              <LoginForm />
 
-            <div className="mt-8 text-center text-sm text-muted-foreground">
-              <p>
-                Precisa de ajuda?{" "}
-                <a href="#" className="text-primary hover:underline">
-                  Entre em contato com o suporte
-                </a>
-              </p>
+              <div className="mt-8 text-center text-sm text-muted-foreground">
+                <p>
+                  Precisa de ajuda?{" "}
+                  <a href="#" className="text-primary hover:underline">
+                    Entre em contato com o suporte
+                  </a>
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Lado direito - Visual */}
-      <div className="hidden md:flex w-1/2 bg-gradient-to-br from-custom-primary to-custom-secondary overflow-hidden relative">
-        <div className="relative z-10 flex flex-col justify-center items-center p-16 text-white">
+      <div className="hidden md:flex w-1/2 bg-gradient-to-br overflow-hidden relative items-center justify-center">
+        <div className="relative z-10 flex flex-col justify-center items-center p-16 text-white h-full w-full">
           <div className="mb-8">
             <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center mb-4">
               <svg
