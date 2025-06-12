@@ -9,7 +9,7 @@ import { useAuth } from "@/features/auth/context/auth-context"
 import { LogOut } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
-export default function SystemSelectionPage() {
+export default function modulesPage() {
   const router = useRouter()
   const { isAuthenticated, logout, user, isLoading } = useAuth()
   const { toast } = useToast()
@@ -44,7 +44,7 @@ export default function SystemSelectionPage() {
     return null // Redirecionado pelo useEffect
   }
 
-  const handleSystemSelect = (system: string) => {
+  const handlemodules = (system: string) => {
     setSelectedSystem(system)
     router.push("/dashboard")
   }
@@ -76,13 +76,13 @@ export default function SystemSelectionPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handleSystemSelect("COMERCIAL")}>
+          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handlemodules("COMERCIAL")}>
             Sistema Comercial
           </Button>
-          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handleSystemSelect("RH")}>
+          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handlemodules("RH")}>
             Sistema RH
           </Button>
-          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handleSystemSelect("TI")}>
+          <Button className="w-full py-3 text-lg font-semibold" onClick={() => handlemodules("TI")}>
             Sistema TI
           </Button>
         </CardContent>

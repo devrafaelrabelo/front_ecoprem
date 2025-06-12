@@ -8,7 +8,7 @@ import { HelpCircle, LogOut } from "lucide-react"
 import { useEffect } from "react"
 import { APP_NAME } from "@/config"
 
-export default function SystemSelectionPage() {
+export default function modulesPage() {
   const router = useRouter()
   const { isAuthenticated, logout, user, isLoading } = useAuth()
 
@@ -18,7 +18,7 @@ export default function SystemSelectionPage() {
   // por alguma razão (ex: navegação client-side, race condition).
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      console.log("SystemSelectionPage: Não autenticado após carregamento, redirecionando para login.")
+      console.log("modulesPage: Não autenticado após carregamento, redirecionando para login.")
       router.replace("/login")
     }
   }, [isLoading, isAuthenticated, router])

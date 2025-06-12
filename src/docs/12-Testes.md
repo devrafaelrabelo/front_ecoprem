@@ -175,7 +175,7 @@ describe('Login', () => {
     cy.get('button[type="submit"]').click();
 
     // Verifica redirecionamento para dashboard
-    cy.url().should('include', '/system-selection');
+    cy.url().should('include', '/modules');
     cy.contains('Bem-vindo').should('be.visible');
   });
 
@@ -668,7 +668,7 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /entrar/i }));
 
     await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith('/system-selection');
+      expect(mockRouter.push).toHaveBeenCalledWith('/modules');
     });
   });
 });
@@ -787,7 +787,7 @@ describe('Fluxo de Login', () => {
     cy.get('button[type="submit"]').click();
 
     // Verifica redirecionamento para dashboard
-    cy.url().should('include', '/system-selection');
+    cy.url().should('include', '/modules');
     cy.contains('Bem-vindo').should('be.visible');
   });
 
@@ -813,13 +813,13 @@ describe('Fluxo de Login', () => {
     cy.get('button[type="submit"]').click();
 
     // Verifica redirecionamento
-    cy.url().should('include', '/system-selection');
+    cy.url().should('include', '/modules');
 
     // Fecha o navegador (simulado)
     cy.reload();
 
     // Verifica se ainda está logado
-    cy.url().should('include', '/system-selection');
+    cy.url().should('include', '/modules');
   });
 });
 \`\`\`

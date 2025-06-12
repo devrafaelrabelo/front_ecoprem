@@ -124,7 +124,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/") {
     if (isAuthenticated) {
       const redirectCookie = request.cookies.get("redirect_after_login")?.value
-      const destination = redirectCookie || "/system-selection"
+      const destination = redirectCookie || "/modules"
       console.log(`🏠 Redirecionando autenticado para: ${destination}`)
       const response = NextResponse.redirect(new URL(destination, request.url))
       if (redirectCookie) response.cookies.delete("redirect_after_login")
@@ -156,7 +156,7 @@ export async function middleware(request: NextRequest) {
   // Redirecionar usuários autenticados da página de login
   if (pathname === "/login" && isAuthenticated) {
     const redirectCookie = request.cookies.get("redirect_after_login")?.value
-    const destination = redirectCookie || "/system-selection"
+    const destination = redirectCookie || "/modules"
     console.log(`🔄 Redirecionando usuário autenticado do login para: ${destination}`)
     const response = NextResponse.redirect(new URL(destination, request.url))
     response.cookies.delete("redirect_after_login")
@@ -166,7 +166,7 @@ export async function middleware(request: NextRequest) {
   // Redirecionar usuários autenticados de outras rotas públicas (exceto logout)
   if (isPublicRoute && isAuthenticated && pathname !== "/logout" && pathname !== "/test") {
     console.log(`🔄 Redirecionando usuário autenticado de rota pública: ${pathname}`)
-    const response = NextResponse.redirect(new URL("/system-selection", request.url))
+    const response = NextResponse.redirect(new URL("/modules", request.url))
     return createResponseWithAuthStatus(response)
   }
 

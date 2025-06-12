@@ -34,8 +34,8 @@ export function useRouteManagement({
       }
     }
 
-    if (pathname === "/system-selection") {
-      return { id: "system-selection", name: "Seleção de Sistema", color: "text-custom-primary" }
+    if (pathname === "/modules") {
+      return { id: "modules", name: "Seleção de Sistema", color: "text-custom-primary" }
     }
 
     return { id: "none", name: "SysAdmin", color: "text-custom-primary" }
@@ -43,12 +43,12 @@ export function useRouteManagement({
 
   // Verificar se está em um sistema
   const isInSystem = useMemo(() => {
-    return currentSystem.id !== "none" && currentSystem.id !== "system-selection"
+    return currentSystem.id !== "none" && currentSystem.id !== "modules"
   }, [currentSystem])
 
   // Verificar se está na seleção de sistema
-  const isSystemSelection = useMemo(() => {
-    return pathname === "/system-selection"
+  const ismodules = useMemo(() => {
+    return pathname === "/modules"
   }, [pathname])
 
   // Navegar para um sistema
@@ -61,16 +61,16 @@ export function useRouteManagement({
   )
 
   // Voltar para a seleção de sistema
-  const backToSystemSelection = useCallback(() => {
-    router.push("/system-selection")
+  const backTomodules = useCallback(() => {
+    router.push("/modules")
   }, [router])
 
   return {
     currentSystem,
     isInSystem,
-    isSystemSelection,
+    ismodules,
     navigateToSystem,
-    backToSystemSelection,
+    backTomodules,
     pathname,
   }
 }

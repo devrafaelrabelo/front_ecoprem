@@ -33,11 +33,11 @@ export const SYSTEMS_CONFIG: Record<string, SystemInfo> = {
     bgColor: "bg-gray-50 dark:bg-gray-800/30",
     icon: Home,
     description: "Sistema principal",
-    homePath: "/system-selection",
+    homePath: "/modules",
     items: [
       {
         title: "Seleção de Sistema",
-        path: "/system-selection",
+        path: "/modules",
         icon: Home,
         description: "Escolha um sistema",
       },
@@ -75,11 +75,11 @@ export function getBreadcrumbItems(path: string): { title: string; path: string 
   const system = getSystemFromPath(path)
 
   if (system.id === "none") {
-    return [{ title: "Início", path: "/system-selection" }]
+    return [{ title: "Início", path: "/modules" }]
   }
 
   const breadcrumbs = [
-    { title: "Início", path: "/system-selection" },
+    { title: "Início", path: "/modules" },
     { title: system.name, path: system.homePath },
   ]
 

@@ -126,7 +126,7 @@ export function LoginForm() {
 
         // Aguardar um pouco e redirecionar
         setTimeout(() => {
-          window.location.href = "/system-selection"
+          window.location.href = "/modules"
         }, 800)
       } else {
         console.log("❌ LoginForm: Login falhou:", loginResponse.message)
@@ -176,7 +176,7 @@ export function LoginForm() {
 
         // Aguardar um pouco e redirecionar
         setTimeout(() => {
-          window.location.href = "/system-selection"
+          window.location.href = "/modules"
         }, 800)
 
         return true

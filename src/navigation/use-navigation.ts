@@ -24,8 +24,8 @@ export function useNavigation() {
   }, [currentSystem])
 
   // Check if we're on the system selection page
-  const isSystemSelection = useMemo(() => {
-    return pathname === "/system-selection"
+  const ismodules = useMemo(() => {
+    return pathname === "/modules"
   }, [pathname])
 
   // Navigate to a specific system
@@ -40,8 +40,8 @@ export function useNavigation() {
   )
 
   // Go back to system selection
-  const backToSystemSelection = useCallback(() => {
-    router.push("/system-selection")
+  const backTomodules = useCallback(() => {
+    router.push("/modules")
   }, [router])
 
   // Navigate within the current system
@@ -80,9 +80,9 @@ export function useNavigation() {
   return {
     currentSystem,
     isInSystem,
-    isSystemSelection,
+    ismodules,
     navigateToSystem,
-    backToSystemSelection,
+    backTomodules,
     navigateWithinSystem,
     pathname,
     breadcrumbs,
