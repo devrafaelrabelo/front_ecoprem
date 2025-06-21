@@ -59,7 +59,7 @@ export function TwoFactorModal({ isOpen, onClose, onSubmit }: TwoFactorModalProp
 
       if (success) {
         toast({
-          variant: "success",
+          variant: "default",
           title: "Código verificado",
           description: "Autenticação de dois fatores confirmada com sucesso.",
         })
@@ -91,7 +91,7 @@ export function TwoFactorModal({ isOpen, onClose, onSubmit }: TwoFactorModalProp
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose} modal={true}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

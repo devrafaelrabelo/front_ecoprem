@@ -1,7 +1,8 @@
 "use client"
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { authService, type User } from "@/features/auth/services/auth-service"
+import { useSessionValidation } from "@/features/auth/hooks/use-session-validation"
 
 interface AuthContextType {
   user: User | null
@@ -22,8 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+
   const router = useRouter()
-  const lastActivityRef = useRef(Date.now())
+  const { validateSession, clearSession, isValidating } = useSessionValidation()
 
   useEffect(() => {
     setMounted(true)
@@ -34,46 +36,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true)
 
-    const authStatusCookie = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("auth_status="))
-      ?.split("=")[1]
-
-    if (authStatusCookie === "unauthenticated") {
-      console.log("🚫 auth_status cookie indica que usuário NÃO está autenticado")
-      setUser(null)
-      setIsAuthenticated(false)
-      sessionStorage.removeItem("user_data")
-      setIsLoading(false)
-      setIsInitialLoading(false)
-      return
-    }
-
     try {
       console.log("🔍 Verificando autenticação...")
-      const currentUser = await authService.getCurrentUser()
 
-      if (currentUser) {
-        setUser(currentUser)
-        setIsAuthenticated(true)
-        sessionStorage.setItem("user_data", JSON.stringify(currentUser))
-        console.log("✅ Sessão válida.")
+      // Primeiro, verificar cookie de status rápido
+      const authStatusCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("auth_status="))
+        ?.split("=")[1]
+
+      if (authStatusCookie === "unauthenticated") {
+        console.log("🚫 Cookie indica usuário não autenticado")
+        setUser(null)
+        setIsAuthenticated(false)
+        sessionStorage.removeItem("user_data")
+        setIsLoading(false)
+        setIsInitialLoading(false)
+        return
+      }
+
+      // Validar sessão com o backend
+      const sessionResult = await validateSession()
+
+      if (sessionResult.isValid && sessionResult.user) {
+        const currentUser = await authService.getCurrentUser()
+
+        if (currentUser) {
+          setUser(currentUser)
+          setIsAuthenticated(true)
+          sessionStorage.setItem("user_data", JSON.stringify(currentUser))
+          console.log("✅ Autenticação válida")
+        } else {
+          throw new Error("Falha ao obter dados do usuário")
+        }
       } else {
         setUser(null)
         setIsAuthenticated(false)
         sessionStorage.removeItem("user_data")
-        console.log("🚫 Sessão inválida.")
+        console.log("🚫 Sessão inválida")
       }
     } catch (error) {
-      console.error("❌ Erro ao verificar autenticação:", error)
+      console.error("❌ Erro na verificação de autenticação:", error)
       setUser(null)
       setIsAuthenticated(false)
       sessionStorage.removeItem("user_data")
+      clearSession()
     } finally {
       setIsLoading(false)
       setIsInitialLoading(false)
     }
-  }, [mounted])
+  }, [mounted, validateSession, clearSession])
 
   useEffect(() => {
     checkAuthentication()
@@ -85,11 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authService.login(email, password, rememberMe)
 
       if (response.success) {
-        console.log("✅ Login bem-sucedido.")
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+        console.log("✅ Login bem-sucedido")
+
+        // Aguardar um pouco para o backend processar
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        // Limpar cache de sessão para forçar nova validação
+        clearSession()
 
         if (window.location.pathname === "/login") {
-          console.log("🔀 Login bem-sucedido na página de login, redirecionando...")
           window.location.href = "/"
         } else {
           await checkAuthentication()
@@ -115,13 +131,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setIsAuthenticated(false)
       sessionStorage.removeItem("user_data")
-      console.log("✅ Logout concluído.")
+      clearSession()
+      console.log("✅ Logout concluído")
       window.location.replace("/login")
     } catch (error) {
       console.error("❌ Erro durante logout:", error)
+      // Mesmo com erro, limpar estado local
       setUser(null)
       setIsAuthenticated(false)
       sessionStorage.removeItem("user_data")
+      clearSession()
       window.location.replace("/login")
     } finally {
       setIsLoading(false)
@@ -129,23 +148,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshAuth = async () => {
+    clearSession() // Limpar cache para forçar nova validação
     await checkAuthentication()
   }
 
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData }
-      setUser(updatedUser)
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("user_data", JSON.stringify(updatedUser))
+  const updateUser = useCallback(
+    (userData: Partial<User>) => {
+      if (user) {
+        const updatedUser = { ...user, ...userData }
+        setUser(updatedUser)
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("user_data", JSON.stringify(updatedUser))
+        }
       }
-    }
-  }
+    },
+    [user],
+  )
 
   const contextValue: AuthContextType = {
     user,
     isAuthenticated,
-    isLoading: mounted ? isLoading : true,
+    isLoading: mounted ? isLoading || isValidating : true,
     isInitialLoading: mounted ? isInitialLoading : true,
     login,
     logout,

@@ -17,7 +17,7 @@ import {
 import { AlertCircle, Clock } from "lucide-react"
 
 // Configurações de tempo (em milissegundos)
-const IDLE_TIMEOUT = 1 * 60 * 1000 // 15 minutos de inatividade
+const IDLE_TIMEOUT = 15 * 60 * 1000 // 15 minutos de inatividade
 
 export function SessionTimeoutModal() {
   const [open, setOpen] = useState(false)
@@ -70,7 +70,7 @@ export function SessionTimeoutModal() {
   if (!isAuthenticated) return null
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} modal={true}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

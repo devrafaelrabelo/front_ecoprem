@@ -1,87 +1,141 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/features/auth/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { HelpCircle, LogOut } from "lucide-react"
-import { useEffect } from "react"
-import { APP_NAME } from "@/config"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSessionStorage } from "@/hooks/use-session-storage"
+import { useEffect, useMemo } from "react"
+import { useAuth } from "@/features/auth/context/auth-context"
+import { LogOut, AlertTriangle, Loader2 } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { SYSTEMS_CONFIG, AVAILABLE_SYSTEMS } from "@/navigation/config"
+import { cn } from "@/lib/utils"
+import * as LucideIcons from "lucide-react"
 
-export default function modulesPage() {
+export default function SystemSelectionPage() {
   const router = useRouter()
-  const { isAuthenticated, logout, user, isLoading } = useAuth()
+  const { isAuthenticated, logout, user, isLoading: authIsLoading, isInitialLoading } = useAuth()
+  const { toast } = useToast()
+  const [selectedSystemId, setSelectedSystemId] = useSessionStorage<string | null>("selectedSystem", null)
 
-  // Este useEffect garante que, se o componente terminar de carregar
-  // e o usuário não estiver autenticado, ele será redirecionado.
-  // Isso atua como um fallback robusto caso o middleware não redirecione
-  // por alguma razão (ex: navegação client-side, race condition).
+  // Redirecionamento se não autenticado (fallback)
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log("modulesPage: Não autenticado após carregamento, redirecionando para login.")
+    if (!authIsLoading && !isInitialLoading && !isAuthenticated) {
       router.replace("/login")
     }
-  }, [isLoading, isAuthenticated, router])
+  }, [authIsLoading, isInitialLoading, isAuthenticated, router])
 
-  // Mostrar loading enquanto verifica autenticação
-  // Se isLoading for true, sempre mostra o spinner.
-  if (isLoading) {
+  const userAvailableSystems = useMemo(() => {
+    if (!user || !user.departments || user.departments.length === 0) {
+      return []
+    }
+    return AVAILABLE_SYSTEMS.filter((system) =>
+      user.departments!.some((dep) => dep.toUpperCase() === system.id.toUpperCase()),
+    )
+  }, [user])
+
+  if (authIsLoading || isInitialLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Carregando...</p>
+          <Loader2 className="animate-spin h-8 w-8 text-primary mx-auto" />
+          <p className="mt-2 text-sm text-muted-foreground">Carregando informações do usuário...</p>
         </div>
       </div>
     )
   }
 
-  // Se chegamos aqui, isLoading é false.
-  // Se !isAuthenticated, o useEffect acima já disparou (ou vai disparar imediatamente) o redirecionamento.
-  // Portanto, podemos retornar null aqui, pois a página será substituída em breve.
   if (!isAuthenticated) {
-    return null
+    return null // Redirecionado pelo useEffect
   }
 
-  // Se chegamos aqui, significa que isLoading é false E isAuthenticated é true.
-  // Agora podemos renderizar o conteúdo da página.
+  const handleSystemSelect = (systemId: string) => {
+    const system = SYSTEMS_CONFIG[systemId as keyof typeof SYSTEMS_CONFIG]
+    if (system) {
+      setSelectedSystemId(systemId)
+      router.push(system.homePath)
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro na seleção",
+        description: "Sistema selecionado inválido.",
+      })
+    }
+  }
 
-  // Função para navegar para a página de ajuda
-  const goToHelp = () => {
-    window.open("http://localhost:8080/swagger-ui/index.html#/", "_blank");
+  const handleLogout = async () => {
+    try {
+      await logout()
+      setSelectedSystemId(null)
+      toast({
+        variant: "success",
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro no logout",
+        description: "Ocorreu um erro ao fazer logout. Tente novamente.",
+      })
+    }
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Conteúdo principal - Agora com classes responsivas */}
-      <div className="flex flex-1 items-center justify-center p-4 sm:p-6 md:p-8">
-        <Card className="w-full max-w-[95%] sm:max-w-md md:max-w-lg">
-          <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl md:text-3xl">Bem-vindo ao {APP_NAME}</CardTitle>
-            <CardDescription className="text-sm sm:text-base">
-              {user?.name ? `Olá, ${user.name}!` : "Olá!"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm sm:text-base text-muted-foreground">
-              Esta é a base para seus projetos futuros. Atualmente, o sistema está em modo simplificado sem módulos
-              adicionais.
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background text-foreground">
+      <div className="w-full max-w-4xl text-center">
+        <h1 className="text-4xl font-bold mb-2">Bem-vindo, {user?.fullName || user?.username || "Usuário"}!</h1>
+
+        {userAvailableSystems.length > 0 ? (
+          <>
+            <p className="text-muted-foreground mb-8 text-lg">Selecione o sistema que deseja acessar:</p>
+            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
+              {userAvailableSystems.map((system) => {
+                const IconComponent = system.icon
+                  ? LucideIcons[system.icon as keyof typeof LucideIcons]
+                  : LucideIcons.Box
+                return (
+                  <Card
+                    key={system.id}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all duration-200 ease-in-out",
+                      "hover:shadow-lg hover:scale-[1.02] border-2",
+                      system.bgColor,
+                      system.color,
+                    )}
+                    onClick={() => handleSystemSelect(system.id)}
+                  >
+                    <CardHeader className="p-0 pb-2">
+                      <IconComponent className="h-12 w-12 mb-4 mx-auto" />
+                      <CardTitle className="text-xl font-semibold">{system.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 text-sm">
+                      <p>{system.description}</p>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="mt-8 text-center">
+            <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <p className="text-xl font-semibold text-muted-foreground">Nenhum sistema disponível.</p>
+            <p className="text-sm text-muted-foreground">
+              Você não tem acesso a nenhum sistema no momento ou seus departamentos não correspondem a sistemas
+              configurados.
+              <br />
+              Entre em contato com o administrador se acreditar que isso é um erro.
             </p>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Consulte a documentação para aprender como expandir este projeto com novos módulos e funcionalidades.
-            </p>
-          </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
-            <Button className="w-full sm:w-auto" variant="outline" onClick={goToHelp}>
-              <HelpCircle className="mr-2 h-4 w-4" />
-              Documentação
-            </Button>
-            <Button className="w-full sm:w-auto" variant="default" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        )}
+
+        <div className="flex justify-center mt-8">
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sair
+          </Button>
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import type React from "react"
 
-export default function modulesLayout({
+export default function ModulesLayout({
   children,
 }: {
   children: React.ReactNode
