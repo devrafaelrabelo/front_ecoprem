@@ -36,6 +36,7 @@ import type {
   ApiDetailedUserRequest,
 } from "@/types/user-request"
 import { useToast } from "@/components/ui/use-toast"
+import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -92,7 +93,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
     setIsLoadingList(true)
     setErrorList(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/request`, {
+      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -192,54 +193,53 @@ export default function GerenciarSolicitacoesUsuarioPage() {
   }
 
   const handleViewDetails = useCallback(
-    async (request: MappedUserRequest) => {
-      if (!API_BASE_URL) {
-        toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
-        return
+  async (request: MappedUserRequest) => {
+    if (!API_BASE_URL) {
+      toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
+      return
+    }
+
+    setIsLoadingDetails(true)
+    setErrorDetails(null)
+    setSelectedRequestForDetails(null)
+    setIsDetailsModalOpen(true)
+
+    try {
+      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request/${request.id}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        signal: AbortSignal.timeout(8000),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(
+          `Erro ao buscar detalhes: ${response.status} ${response.statusText} - ${errorData.message || ""}`,
+        )
       }
 
-      setIsLoadingDetails(true)
-      setErrorDetails(null)
-      setSelectedRequestForDetails(null) // Limpa o anterior enquanto carrega
-      setIsDetailsModalOpen(true) // Abre o modal para mostrar o loading
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/user/request/${request.id}`, {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          signal: AbortSignal.timeout(8000), // Timeout de 8 segundos
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(
-            `Erro ao buscar detalhes: ${response.status} ${response.statusText} - ${errorData.message || ""}`,
-          )
-        }
-
-        const detailedData: ApiDetailedUserRequest = await response.json()
-        setSelectedRequestForDetails(detailedData)
-      } catch (err) {
-        console.error("Erro ao buscar detalhes da solicitação:", err)
-        const errorMessage = err instanceof Error ? err.message : "Ocorreu um erro desconhecido."
-        setErrorDetails(errorMessage)
-        toast({
-          title: "Erro ao Carregar Detalhes",
-          description: errorMessage,
-          variant: "destructive",
-        })
-        setIsDetailsModalOpen(false) // Fecha o modal se houver erro grave
-      } finally {
-        setIsLoadingDetails(false)
-      }
-    },
-    [toast],
-  )
+      const detailedData: ApiDetailedUserRequest = await response.json()
+      setSelectedRequestForDetails(detailedData)
+    } catch (err) {
+      console.error("Erro ao buscar detalhes da solicitação:", err)
+      const errorMessage = err instanceof Error ? err.message : "Ocorreu um erro desconhecido."
+      setErrorDetails(errorMessage)
+      toast({
+        title: "Erro ao Carregar Detalhes",
+        description: errorMessage,
+        variant: "destructive",
+      })
+      setIsDetailsModalOpen(false)
+    } finally {
+      setIsLoadingDetails(false)
+    }
+  },
+  [toast],
+)
 
   const handleCloseDetailsModal = () => {
     setIsDetailsModalOpen(false)
@@ -264,7 +264,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
 
     setIsCancelling(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/request/${requestToCancelId}`, {
+      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request/${requestToCancelId}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -321,7 +321,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
         requestIds: Array.from(selectedIds),
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/user/request/batch`, {
+      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request/batch`, {
         method: "DELETE",
         credentials: "include",
         headers: {

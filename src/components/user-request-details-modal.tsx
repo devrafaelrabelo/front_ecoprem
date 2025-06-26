@@ -96,7 +96,7 @@ export function UserRequestDetailsModal({ request, isOpen, onClose }: UserReques
           <div className="grid grid-cols-2 items-center gap-4">
             <span className="text-sm font-medium">Data da Criação:</span>
             <span className="text-sm text-muted-foreground">
-              {request.createdAt
+              {request.createdAt && !isNaN(new Date(request.createdAt).getTime())
                 ? format(new Date(request.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })
                 : "N/A"}
             </span>

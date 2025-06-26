@@ -60,7 +60,7 @@ export interface ApiDetailedUserRequest {
   neighborhood: string
   number: string
   complement: string | null
-  city: string
+  city: string  
   state: string
   status: string // Adicionado para consistência com o modal
   requestedAt: string // Adicionado para consistência com o modal

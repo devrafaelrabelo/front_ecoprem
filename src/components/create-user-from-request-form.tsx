@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Save, X, User, Mail, Shield, Building, Users } from "lucide-react"
 import type { ApiDetailedUserRequest } from "@/types/user-request"
+import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 
 interface CreateUserFromRequestData {
   username: string
@@ -77,8 +78,8 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
     if (requestData) {
       const firstName = requestData.firstName?.toLowerCase() || ""
       const lastName = requestData.lastName?.toLowerCase() || ""
-      const suggestedUsername = `${firstName}${lastName}`.replace(/\s+/g, "")
-      const suggestedEmail = `${firstName}.${lastName}@empresa.com`
+      const suggestedUsername = `${firstName}.${lastName}`.replace(/\s+/g, "")
+      const suggestedEmail = `${firstName}${lastName}@empresa.com`
 
       setFormData({
         ...initialFormData,
@@ -191,7 +192,7 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
         throw new Error("URL da API não configurada")
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/users/create-from-request/${requestData.id}`, {
+      const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/create-from-request/${requestData.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -200,6 +201,8 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
         body: JSON.stringify(formData),
         signal: AbortSignal.timeout(10000),
       })
+
+      console.log("Usuário criado com sucesso:", requestData)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -219,6 +222,8 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
         lastName: requestData.lastName,
         ...result,
       })
+
+      
     } catch (error) {
       console.error("Erro ao criar usuário:", error)
       toast({
@@ -245,7 +250,7 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>Nome Completo</Label>
-            <Input value={`${requestData.firstName} ${requestData.lastName}`} disabled />
+            <Input value={`${requestData.fullName}`} disabled />
           </div>
           <div>
             <Label>CPF</Label>
@@ -262,7 +267,7 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
           <div className="md:col-span-2">
             <Label>Endereço</Label>
             <Input
-              value={`${requestData.address.street}, ${requestData.address.number} - ${requestData.address.city}/${requestData.address.state}`}
+              value={`${requestData.street}, ${requestData.number} - ${requestData.city}/${requestData.state}`}
               disabled
             />
           </div>

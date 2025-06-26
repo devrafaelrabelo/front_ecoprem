@@ -8,6 +8,7 @@ import { Loader2, User, MapPin, Calendar, CreditCard, Phone, Briefcase } from "l
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import type { UserFormData, CreateUserRequestPayload } from "@/types/user-request"
+import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -210,7 +211,7 @@ export function UserRequestForm({ onSubmissionSuccess, onCancel }: UserRequestFo
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/request`, {
+      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request`, {
         method: "POST",
         credentials: "include",
         headers: {

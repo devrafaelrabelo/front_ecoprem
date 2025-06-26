@@ -1,5 +1,6 @@
 import { config } from "@/config"
 import { checkBackendHealth, getBackendStatusMessage } from "../utils/backend-health"
+import fetchWithValidation from "./fetch-with-validation"
 
 // Tipos para autenticação
 export interface User {
@@ -287,7 +288,7 @@ export const authService = {
       console.log("🔄 Verificando usuário atual com backend (/me)...")
 
       // Endpoint /me para obter dados do usuário
-      const response = await fetch(`${config.api.baseUrl}/api/user/me`, {
+      const response = await fetchWithValidation(`${config.api.baseUrl}/api/user/me`, {
         // Alterado para /api/users/me
         method: "GET",
         headers: {
@@ -308,54 +309,8 @@ export const authService = {
           console.warn("🚫 Resposta de /me não foi bem-sucedida ou não continha dados:", responseData)
           return null
         }
-      }
-
-      // Se /me falhar (ex: 401), tentar refresh e depois /me novamente
-      if (response.status === 401 || response.status === 400) {
-        console.log("🔁 Token expirado ou inválido para /me. Tentando refresh...")
-
-        const refreshResponse = await fetch(`${config.api.baseUrl}/api/auth/refresh`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Requested-With": "XMLHttpRequest",
-            "User-Agent": navigator.userAgent,
-          },
-          credentials: "include",
-          signal: AbortSignal.timeout(5000),
-        })
-
-        if (refreshResponse.ok) {
-          console.log("✅ Refresh token aceito. Revalidando com /me...")
-          await new Promise((resolve) => setTimeout(resolve, 200))
-
-          const retryMeResponse = await fetch(`${config.api.baseUrl}/api/user/me`, {
-            // Tentar /me novamente
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              "X-Requested-With": "XMLHttpRequest",
-              "User-Agent": navigator.userAgent,
-            },
-            credentials: "include",
-            signal: AbortSignal.timeout(5000),
-          })
-
-          if (retryMeResponse.ok) {
-            const retryData = await retryMeResponse.json()
-            if (retryData.success && retryData.data) {
-              console.log("✅ Revalidação com /me após refresh bem-sucedida:", retryData.data)
-              return parseUser(retryData.data)
-            } else {
-              console.warn("🚫 Resposta de /me pós-refresh não foi bem-sucedida ou não continha dados:", retryData)
-              return null
-            }
-          }
-        }
-        console.warn("🚫 Refresh falhou ou /me pós-refresh falhou. Usuário não autenticado.")
-        return null
-      }
-
+      }  
+      
       console.warn("🚫 Validação com /me falhou. Status:", response.status)
       return null
     } catch (error) {

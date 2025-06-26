@@ -17,6 +17,7 @@ import type {
   MappedUserRequest,
   UserRequestFilters,
 } from "@/types/user-request"
+import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -68,7 +69,7 @@ export default function CreateUserPage() {
     setError(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/users/request`, {
+      const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/request`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -170,7 +171,7 @@ export default function CreateUserPage() {
 
     try {
       setIsLoadingDetails(true)
-      const response = await fetch(`${API_BASE_URL}/api/admin/users/request/${requestId}`, {
+      const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/request/${requestId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
