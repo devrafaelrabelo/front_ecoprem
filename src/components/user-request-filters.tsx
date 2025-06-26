@@ -17,7 +17,7 @@ interface UserRequestFiltersProps {
 }
 
 export function UserRequestFiltersComponent({ filters, onFiltersChange, onClearFilters }: UserRequestFiltersProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
 
   const handleFilterChange = (key: keyof UserRequestFilters, value: string) => {
     onFiltersChange({
@@ -74,7 +74,7 @@ export function UserRequestFiltersComponent({ filters, onFiltersChange, onClearF
                   <SelectContent>
                     <SelectItem value="all">Todos os status</SelectItem>
                     <SelectItem value="PENDING">Pendente</SelectItem>
-                    <SelectItem value="APPROVED">Aprovado</SelectItem>
+                    <SelectItem value="CREATED">Criado</SelectItem>
                     <SelectItem value="REJECTED">Rejeitado</SelectItem>
                     <SelectItem value="COMPLETED">Concluído</SelectItem>
                     <SelectItem value="CANCELED">Cancelado</SelectItem>

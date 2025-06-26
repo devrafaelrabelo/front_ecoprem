@@ -16,7 +16,7 @@ interface UserRequestDetailsModalProps {
 const statusLabelMap: { [key: string]: string } = {
   COMPLETED: "Concluído",
   PENDING: "Pendente",
-  APPROVED: "Aprovado",
+  CREATED: "Criado",
   REJECTED: "Rejeitado",
   CANCELED: "Cancelado",
   UNKNOWN: "Desconhecido", // Adicionado para status indefinido/nulo
@@ -25,7 +25,7 @@ const statusLabelMap: { [key: string]: string } = {
 const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
   COMPLETED: "default",
   PENDING: "outline",
-  APPROVED: "default",
+  CREATED: "default",
   REJECTED: "destructive",
   CANCELED: "secondary",
   UNKNOWN: "secondary", // Adicionado para status indefinido/nulo

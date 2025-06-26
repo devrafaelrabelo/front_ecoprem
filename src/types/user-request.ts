@@ -42,7 +42,7 @@ export interface ApiListedUserRequest {
   firstName: string
   lastName: string
   cpf: string
-  status: string // Ex: "PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELED"
+  status: string // Ex: "PENDING", "CREATED", "REJECTED", "COMPLETED", "CANCELED"
   requestedAt: string // Data e hora da solicitação (ISO string)
 }
 
@@ -74,7 +74,7 @@ export interface MappedUserRequest {
   id: string
   fullName: string
   cpf: string
-  status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED" | "CANCELED" // Status mapeado para um enum de strings literais
+  status: "PENDING" | "CREATED" | "REJECTED" | "COMPLETED" | "CANCELED" // Status mapeado para um enum de strings literais
   requestDate: string // Data e hora da solicitação (ISO string)
   // originalData não é mais necessário aqui, pois os detalhes serão buscados separadamente
 }

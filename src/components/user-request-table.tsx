@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react"
+import { MoreHorizontal, Eye, Edit, Trash2, UserPlus } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -25,12 +25,13 @@ interface UserRequestTableProps {
   onViewDetails?: (request: MappedUserRequest) => void
   onEditRequest?: (request: MappedUserRequest) => void
   onCancelRequest?: (requestId: string) => void
+  onInitiateCreation?: (request: MappedUserRequest) => void
 }
 
 const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
   COMPLETED: "default",
   PENDING: "outline",
-  APPROVED: "default",
+  CREATED: "default",
   REJECTED: "destructive",
   CANCELED: "secondary",
 }
@@ -38,7 +39,7 @@ const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive"
 const statusLabelMap: { [key: string]: string } = {
   COMPLETED: "Concluído",
   PENDING: "Pendente",
-  APPROVED: "Aprovado",
+  CREATED: "Criado",
   REJECTED: "Rejeitado",
   CANCELED: "Cancelado",
 }
@@ -50,6 +51,7 @@ export function UserRequestTable({
   onViewDetails,
   onEditRequest,
   onCancelRequest,
+  onInitiateCreation,
 }: UserRequestTableProps) {
   const getStatusVariant = (
     status: MappedUserRequest["status"],
@@ -160,7 +162,7 @@ export function UserRequestTable({
                           <Eye className="mr-2 h-4 w-4" /> Ver Detalhes
                         </DropdownMenuItem>
                       )}
-                      {onEditRequest && (request.status === "PENDING" || request.status === "REJECTED") && (
+                      {onEditRequest && ( request.status === "PENDING" || request.status === "REJECTED") && (
                         <DropdownMenuItem onClick={() => onEditRequest(request)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
@@ -173,6 +175,14 @@ export function UserRequestTable({
                             className="text-red-600 focus:text-red-600"
                           >
                             <Trash2 className="mr-2 h-4 w-4" /> Cancelar Solicitação
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {onInitiateCreation && request.status === "PENDING" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onInitiateCreation(request)}>
+                            <UserPlus className="mr-2 h-4 w-4" /> Criar Usuário
                           </DropdownMenuItem>
                         </>
                       )}
