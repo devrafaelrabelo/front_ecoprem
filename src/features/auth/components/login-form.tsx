@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
-import { Lock, Loader2, Eye, EyeOff } from "lucide-react"
+import { Lock, Loader2, Eye, EyeOff, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "../context/auth-context"
 import { authService } from "../services/auth-service"
 import { TwoFactorModal } from "./two-factor-modal"
-import { DynamicIconInput } from "@/components/ui/dynamic-icon-input"
 
 export function LoginForm() {
   const [formData, setFormData] = useState({
@@ -200,18 +199,27 @@ export function LoginForm() {
     <>
       <form onSubmit={handleSubmit} className={`space-y-6 ${shake ? "animate-shake" : ""}`} autoComplete="on">
         <div className="space-y-4">
-          <DynamicIconInput
-            id="email"
-            name="email"
-            type="text"
-            label="Usuário ou Email"
-            placeholder="Digite seu usuário ou email"
-            value={formData.email}
-            onChange={handleChange}
-            error={fieldErrors.email}
-            required
-            disabled={isLoading}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="email" className={fieldErrors.email ? "text-red-500" : ""}>
+              Usuário ou Email
+            </Label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                <User className="h-4 w-4" />
+              </div>
+              <Input
+                id="email"
+                name="email"
+                type="text"
+                placeholder="Digite seu usuário ou email"
+                value={formData.email}
+                onChange={handleChange}
+                className={`pl-10 ${fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                required
+                disabled={isLoading}
+              />
+            </div>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="password" className={fieldErrors.password ? "text-red-500" : ""}>

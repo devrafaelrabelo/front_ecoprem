@@ -3,14 +3,9 @@
 import { LoginForm } from "@/features/auth/components/login-form"
 import { APP_NAME, LOGO_URL } from "@/config"
 import { useAuth } from "@/features/auth/context/auth-context"
-import { FullScreenLoader } from "@/components/full-screen-loader"
 
 export default function LoginPage() {
   const { isInitialLoading } = useAuth()
-
-  if (isInitialLoading) {
-    return <FullScreenLoader /> // ou return null
-  }
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">

@@ -1,10 +1,10 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { config } from "@/config"
+import { config } from "@/config" // Certifique-se que config.api.baseUrl está correto
 
 interface SessionValidationResult {
   isValid: boolean
-  user: any | null
+  user: any | null // O tipo 'any' deve ser substituído por um tipo de usuário mais específico se possível
   error: string | null
 }
 
@@ -21,91 +21,102 @@ export function useSessionValidation(): UseSessionValidationReturn {
   const lastValidationRef = useRef<number>(0)
   const cacheTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Cache TTL de 30 segundos
-  const CACHE_TTL = 30 * 1000
+  const CACHE_TTL = 1500 * 1000 // Cache TTL de 30 segundos
 
   const validateSession = useCallback(async (): Promise<SessionValidationResult> => {
     const now = Date.now()
 
-    // Verificar cache
     if (sessionData && now - lastValidationRef.current < CACHE_TTL) {
-      console.log("🔄 Usando cache da validação de sessão")
+      console.log("🔄 useSessionValidation: Usando cache da validação de sessão.")
       return sessionData
     }
 
+    if (!config.api.baseUrl || config.api.baseUrl.includes("localhost:3000/api")) {
+      // Se a URL base não estiver configurada para uma API externa, ou ainda aponta para API routes locais
+      // que não existem para /auth/session, retorne um erro ou um estado padrão.
+      console.warn(
+        "⚠️ useSessionValidation: API_BASE_URL não configurada para API externa ou aponta para API routes locais. Simulação de sessão inválida.",
+      )
+      const result: SessionValidationResult = {
+        isValid: false,
+        user: null,
+        error: "Configuração da API externa ausente.",
+      }
+      setSessionData(result)
+      lastValidationRef.current = now
+      return result
+    }
+
     setIsValidating(true)
-    console.log("🔍 Validando sessão com backend...")
+    console.log(`🔍 useSessionValidation: Validando sessão com backend em ${config.api.baseUrl}/api/auth/session...`)
 
     try {
-      // Usar a URL base do seu backend configurado
       const response = await fetch(`${config.api.baseUrl}/api/auth/session`, {
         method: "GET",
-        credentials: "include", // Importante para enviar cookies HttpOnly
+        credentials: "include",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest", // Header para identificar requisições AJAX
+          "X-Requested-With": "XMLHttpRequest",
+          // TODO: Adicionar cabeçalho de autenticação se necessário para esta rota específica
+          // 'Authorization': `Bearer ${your_auth_token_if_needed_for_session_check}`
         },
-        signal: AbortSignal.timeout(5000), // Timeout de 5 segundos
+        signal: AbortSignal.timeout(8000), // Timeout de 8 segundos
       })
 
-      console.log(`📡 Resposta do backend /api/auth/session: ${response.status}`)
+      console.log(`📡 useSessionValidation: Resposta do backend /api/auth/session: ${response.status}`)
 
       if (response.ok) {
         const userData = await response.json()
         const result: SessionValidationResult = {
           isValid: true,
-          user: userData,
+          user: userData, // userData deve ser o objeto do usuário retornado pela sua API Spring Boot
           error: null,
         }
-
         setSessionData(result)
         lastValidationRef.current = now
-        console.log("✅ Sessão válida no backend:", userData)
+        console.log("✅ useSessionValidation: Sessão válida no backend:", userData)
         return result
       } else {
-        let errorMessage = `Erro ${response.status}`
+        let errorMessage = `Erro ${response.status} ao validar sessão.`
         try {
           const errorData = await response.json()
           errorMessage = errorData.message || errorData.error || errorMessage
         } catch {
-          errorMessage = await response.text().catch(() => errorMessage)
+          // Se não conseguir parsear o JSON do erro, usa o texto da resposta ou o status
+          const responseText = await response.text().catch(() => "")
+          errorMessage = responseText || errorMessage
         }
-
         const result: SessionValidationResult = {
           isValid: false,
           user: null,
           error: errorMessage,
         }
-
         setSessionData(result)
         lastValidationRef.current = now
-        console.log("❌ Sessão inválida no backend:", errorMessage)
+        console.warn("❌ useSessionValidation: Sessão inválida no backend:", errorMessage)
         return result
       }
     } catch (error: any) {
-      let errorMessage = "Erro de conexão com o backend"
-
+      let errorMessage = "Erro de conexão ao validar sessão com o backend."
       if (error.name === "TimeoutError") {
-        errorMessage = "Timeout: Backend demorou muito para responder"
+        errorMessage = "Timeout: Backend demorou muito para responder à validação de sessão."
       } else if (error instanceof Error) {
         errorMessage = error.message
       }
-
       const result: SessionValidationResult = {
         isValid: false,
         user: null,
         error: errorMessage,
       }
-
       setSessionData(result)
       lastValidationRef.current = now
-      console.error("💥 Erro na validação de sessão com backend:", errorMessage)
+      console.error("💥 useSessionValidation: Erro na validação de sessão com backend:", errorMessage, error)
       return result
     } finally {
       setIsValidating(false)
     }
-  }, [sessionData])
+  }, [sessionData, CACHE_TTL]) // Removido config.api.baseUrl da dependência, pois é improvável que mude em tempo de execução
 
   const clearSession = useCallback(() => {
     setSessionData(null)
@@ -113,24 +124,25 @@ export function useSessionValidation(): UseSessionValidationReturn {
     if (cacheTimeoutRef.current) {
       clearTimeout(cacheTimeoutRef.current)
     }
-    console.log("🧹 Cache de sessão limpo")
+    console.log("🧹 useSessionValidation: Cache de validação de sessão limpo.")
   }, [])
 
-  // Limpar cache automaticamente após TTL
   useEffect(() => {
     if (sessionData) {
-      cacheTimeoutRef.current = setTimeout(() => {
-        console.log("⏰ Cache de sessão expirado")
-        setSessionData(null)
-      }, CACHE_TTL)
+      cacheTimeoutRef.current = setTimeout(
+        () => {
+          console.log("⏰ useSessionValidation: Cache de validação de sessão expirado, limpando.")
+          setSessionData(null) // Limpa para forçar revalidação na próxima chamada
+        },
+        CACHE_TTL - (Date.now() - lastValidationRef.current),
+      ) // Ajusta o timeout para o tempo restante do TTL
     }
-
     return () => {
       if (cacheTimeoutRef.current) {
         clearTimeout(cacheTimeoutRef.current)
       }
     }
-  }, [sessionData])
+  }, [sessionData, CACHE_TTL])
 
   return {
     isValidating,
