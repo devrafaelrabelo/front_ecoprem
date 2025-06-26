@@ -44,9 +44,29 @@ export interface ApiListedUserRequest {
   cpf: string
   status: string // Ex: "PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELED"
   requestedAt: string // Data e hora da solicitação (ISO string)
-  // Adicione outros campos que a API possa retornar para a listagem, se houver
-  // Ex: supervisorName?: string;
-  // Ex: leaderName?: string;
+}
+
+// Tipo para os dados recebidos da API ao buscar detalhes de uma solicitação
+export interface ApiDetailedUserRequest {
+  id: string
+  cpf: string
+  fullName: string
+  birthDate: string // Formato AAAA-MM-DD
+  phone: string
+  supervisorId: string | null
+  leaderId: string | null
+  cep: string
+  street: string
+  neighborhood: string
+  number: string
+  complement: string | null
+  city: string
+  state: string
+  status: string // Adicionado para consistência com o modal
+  requestedAt: string // Adicionado para consistência com o modal
+  requestedName: string // Nome da solicitação, se aplicável
+  createdBy: string // Nome do usuário que criou a solicitação
+  createdAt: string // Data e hora de criação da solicitação (ISO string)
 }
 
 // Tipo para os dados de solicitação mapeados para exibição na tabela
@@ -56,5 +76,18 @@ export interface MappedUserRequest {
   cpf: string
   status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED" | "CANCELED" // Status mapeado para um enum de strings literais
   requestDate: string // Data e hora da solicitação (ISO string)
-  originalData: ApiListedUserRequest // Manter os dados originais da API para detalhes
+  // originalData não é mais necessário aqui, pois os detalhes serão buscados separadamente
+}
+
+// Tipos para filtros
+export interface UserRequestFilters {
+  status: string
+  searchTerm: string
+  dateFrom: string
+  dateTo: string
+}
+
+// Tipo para payload de exclusão em lote
+export interface BatchDeletePayload {
+  requestIds: string[]
 }

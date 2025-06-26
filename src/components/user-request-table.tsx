@@ -3,6 +3,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,25 +12,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react" // Ícones para novas ações
+import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import type { MappedUserRequest } from "@/types/user-request" // Importar o tipo
+import type { MappedUserRequest } from "@/types/user-request"
 
 interface UserRequestTableProps {
   requests: MappedUserRequest[]
+  selectedIds: Set<string>
+  onSelectionChange: (selectedIds: Set<string>) => void
   onViewDetails?: (request: MappedUserRequest) => void
-  onEditRequest?: (request: MappedUserRequest) => void // Se edição for permitida
-  onCancelRequest?: (requestId: string) => void // Se cancelamento for permitido
+  onEditRequest?: (request: MappedUserRequest) => void
+  onCancelRequest?: (requestId: string) => void
 }
 
 const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
-  COMPLETED: "default", // Verde (shadcn default é azulado, pode customizar)
-  PENDING: "outline", // Amarelo/Laranja
-  APPROVED: "default", // Verde
-  REJECTED: "destructive", // Vermelho
-  CANCELED: "secondary", // Cinza
+  COMPLETED: "default",
+  PENDING: "outline",
+  APPROVED: "default",
+  REJECTED: "destructive",
+  CANCELED: "secondary",
 }
 
 const statusLabelMap: { [key: string]: string } = {
@@ -40,7 +43,14 @@ const statusLabelMap: { [key: string]: string } = {
   CANCELED: "Cancelado",
 }
 
-export function UserRequestTable({ requests, onViewDetails, onEditRequest, onCancelRequest }: UserRequestTableProps) {
+export function UserRequestTable({
+  requests,
+  selectedIds,
+  onSelectionChange,
+  onViewDetails,
+  onEditRequest,
+  onCancelRequest,
+}: UserRequestTableProps) {
   const getStatusVariant = (
     status: MappedUserRequest["status"],
   ): "default" | "secondary" | "destructive" | "outline" => {
@@ -51,12 +61,45 @@ export function UserRequestTable({ requests, onViewDetails, onEditRequest, onCan
     return statusLabelMap[status.toUpperCase() as keyof typeof statusLabelMap] || status
   }
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const newSelected = new Set(selectedIds)
+      requests.forEach((request) => newSelected.add(request.id))
+      onSelectionChange(newSelected)
+    } else {
+      const newSelected = new Set(selectedIds)
+      requests.forEach((request) => newSelected.delete(request.id))
+      onSelectionChange(newSelected)
+    }
+  }
+
+  const handleSelectItem = (requestId: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds)
+    if (checked) {
+      newSelected.add(requestId)
+    } else {
+      newSelected.delete(requestId)
+    }
+    onSelectionChange(newSelected)
+  }
+
+  const isAllSelected = requests.length > 0 && requests.every((request) => selectedIds.has(request.id))
+  const isIndeterminate = requests.some((request) => selectedIds.has(request.id)) && !isAllSelected
+
   return (
     <TooltipProvider>
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Selecionar todos"
+                  {...(isIndeterminate && { "data-state": "indeterminate" })}
+                />
+              </TableHead>
               <TableHead className="min-w-[250px]">Nome Completo</TableHead>
               <TableHead className="min-w-[150px]">CPF</TableHead>
               <TableHead>Data da Solicitação</TableHead>
@@ -67,13 +110,20 @@ export function UserRequestTable({ requests, onViewDetails, onEditRequest, onCan
           <TableBody>
             {requests.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   Nenhuma solicitação encontrada.
                 </TableCell>
               </TableRow>
             )}
             {requests.map((request) => (
               <TableRow key={request.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.has(request.id)}
+                    onCheckedChange={(checked) => handleSelectItem(request.id, checked as boolean)}
+                    aria-label={`Selecionar ${request.fullName}`}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="font-medium">{request.fullName}</div>
                 </TableCell>
@@ -110,7 +160,6 @@ export function UserRequestTable({ requests, onViewDetails, onEditRequest, onCan
                           <Eye className="mr-2 h-4 w-4" /> Ver Detalhes
                         </DropdownMenuItem>
                       )}
-                      {/* Adicionar lógica para permitir edição/cancelamento baseado no status */}
                       {onEditRequest && (request.status === "PENDING" || request.status === "REJECTED") && (
                         <DropdownMenuItem onClick={() => onEditRequest(request)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
