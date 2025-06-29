@@ -1,21 +1,36 @@
-import type React from "react"
-import * as Icons from "lucide-react"
+import {
+  Users,
+  User,
+  Package,
+  CreditCard,
+  MoreHorizontal,
+  Phone,
+  PhoneForwarded,
+  ShieldCheck,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react"
 
-type IconName = keyof typeof Icons
+// Mapeamento de strings para componentes de ícones
+const iconMap: Record<string, LucideIcon> = {
+  Users: Users,
+  User: User,
+  Package: Package,
+  "Credit-card": CreditCard,
+  Multiple: MoreHorizontal,
+  Phone: Phone,
+  "Phone-forwarded": PhoneForwarded,
+  "Shield-check": ShieldCheck,
+  ChevronRight: ChevronRight,
+}
 
-interface DynamicIconProps extends Icons.LucideProps {
+interface DynamicIconProps {
   name: string
+  className?: string
 }
 
-const DynamicIcon: React.FC<DynamicIconProps> = ({ name, ...props }) => {
-  const IconComponent = Icons[name as IconName]
+export function DynamicIcon({ name, className = "h-5 w-5" }: DynamicIconProps) {
+  const IconComponent = iconMap[name] || Package // Fallback para Package se não encontrar
 
-  if (!IconComponent) {
-    // Retorna um ícone padrão ou nulo se o nome do ícone for inválido
-    return <Icons.HelpCircle {...props} />
-  }
-
-  return <IconComponent {...props} />
+  return <IconComponent className={className} />
 }
-
-export default DynamicIcon
