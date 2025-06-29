@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { ChevronRight, Loader2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { DynamicIcon } from "@/components/dynamic-icon"
 import { useMenuData } from "@/hooks/use-menu-data"
 import type { MenuItem, SubMenuItem } from "@/types/menu"
@@ -17,6 +17,38 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
   const { menuData, isLoading, error } = useMenuData()
   const router = useRouter()
+  const pathname = usePathname()
+
+  // Função para verificar se um submenu está ativo
+  // Agora, um submenu é considerado ativo APENAS se o pathname for uma correspondência exata
+  const isSubMenuActive = (path: string) => {
+    return pathname === path
+  }
+
+  // Função para verificar se um menu principal tem algum submenu ativo
+  // Ou se o próprio path do menu principal é ativo (se ele tiver um path)
+  const isMenuActive = (menuItem: MenuItem) => {
+    // Verifica se algum submenu está ativo
+    const hasActiveSubmenu = menuItem.submenu.some((subItem) => isSubMenuActive(subItem.path))
+
+    // Se o menu principal tem um path próprio e ele é ativo
+    // (Isso é útil se o menu principal também for um link, como "Dashboard" que tem sub-itens)
+    const isParentLinkActive = menuItem.path ? pathname === menuItem.path : false
+
+    return hasActiveSubmenu || isParentLinkActive
+  }
+
+  // Função para obter o menu que deve estar expandido baseado na rota atual
+  const getActiveMenuTitle = () => {
+    if (!menuData) return null
+
+    for (const menu of menuData.menus) {
+      if (isMenuActive(menu)) {
+        return menu.title
+      }
+    }
+    return null
+  }
 
   const handleMenuClick = (menuTitle: string) => {
     if (isCollapsed) {
@@ -54,16 +86,20 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
     }
   }
 
-  // Efeito para limpar estados quando a sidebar muda de estado
+  // Efeito para limpar estados quando a sidebar muda de estado e auto-expandir menu ativo
   useEffect(() => {
     if (isCollapsed) {
       // Quando colapsa, limpa o menu expandido
       setExpandedMenu(null)
     } else {
-      // Quando expande, limpa o menu hover imediatamente
+      // Quando expande, limpa o menu hover e auto-expande o menu ativo
       setHoveredMenu(null)
+      const activeMenuTitle = getActiveMenuTitle()
+      if (activeMenuTitle && !expandedMenu) {
+        setExpandedMenu(activeMenuTitle)
+      }
     }
-  }, [isCollapsed])
+  }, [isCollapsed, menuData, pathname]) // Adicionado pathname como dependência para re-avaliar ao mudar de rota
 
   // Efeito adicional para garantir limpeza do hover quando não está colapsado
   useEffect(() => {
@@ -152,7 +188,11 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
                       "hover:bg-accent hover:text-accent-foreground",
                       "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                       "group relative",
+                      // Estilos para menu expandido
                       expandedMenu === item.title && !isCollapsed && "bg-accent text-accent-foreground",
+                      // Estilos para menu ativo
+                      isMenuActive(item) && "bg-primary/10 text-primary border-l-2 border-primary",
+                      isMenuActive(item) && isCollapsed && "bg-primary text-primary-foreground",
                     )}
                   >
                     <DynamicIcon name={item.icon} className="h-5 w-5 flex-shrink-0" />
@@ -202,7 +242,13 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
                               <li key={subItem.label}>
                                 <button
                                   onClick={() => handleSubMenuClick(subItem.path)}
-                                  className="w-full text-left px-4 py-3 rounded-lg text-sm transition-all duration-200 hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group"
+                                  className={cn(
+                                    "w-full text-left px-4 py-3 rounded-lg text-sm transition-all duration-200",
+                                    "hover:bg-accent hover:text-accent-foreground",
+                                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group",
+                                    // Estilo para submenu ativo
+                                    isSubMenuActive(subItem.path) && "bg-primary text-primary-foreground font-medium",
+                                  )}
                                 >
                                   <div className="flex items-center gap-3">
                                     <DynamicIcon name={subItem.icon} className="h-4 w-4 flex-shrink-0" />
@@ -246,11 +292,21 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
                         <li key={subItem.label}>
                           <button
                             onClick={() => handleSubMenuClick(subItem.path)}
-                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-all duration-200 hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            className={cn(
+                              "w-full text-left px-3 py-2 rounded-md text-sm transition-all duration-200",
+                              "hover:bg-accent hover:text-accent-foreground",
+                              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                              // Estilo para submenu ativo
+                              isSubMenuActive(subItem.path) && "bg-primary text-primary-foreground font-medium",
+                            )}
                           >
                             <div className="flex items-center gap-2">
                               <DynamicIcon name={subItem.icon} className="h-4 w-4 flex-shrink-0" />
                               <span>{subItem.label}</span>
+                              {/* Indicador visual para item ativo */}
+                              {isSubMenuActive(subItem.path) && (
+                                <div className="ml-auto w-2 h-2 bg-primary-foreground rounded-full" />
+                              )}
                             </div>
                           </button>
                         </li>
