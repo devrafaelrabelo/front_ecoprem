@@ -51,7 +51,7 @@ const formatCpfDisplay = (cpf: string): string => {
 }
 
 const initialFilters: UserRequestFilters = {
-  status: "",
+  status: "all",
   searchTerm: "",
   dateFrom: "",
   dateTo: "",
@@ -141,7 +141,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
   const filteredRequests = useMemo(() => {
     return requests.filter((request) => {
       // Filtro por status
-      if (filters.status && request.status !== filters.status) {
+      if (filters.status && filters.status !== "all" && request.status !== filters.status) {
         return false
       }
 

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Save, X, User, Mail, Shield, Building, Users } from "lucide-react"
+import { Save, X, User, Mail, Shield, Building, Users, XCircle, CheckCircle, Loader2 } from "lucide-react"
 import type { ApiDetailedUserRequest } from "@/types/user-request"
 import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 
@@ -71,27 +71,105 @@ const initialFormData: CreateUserFromRequestData = {
 export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: CreateUserFromRequestFormProps) {
   const [formData, setFormData] = useState<CreateUserFromRequestData>(initialFormData)
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
+  const { toast } = useToast() 
 
-  // Preencher dados iniciais baseados na solicitação
+  // Estados para validação de username e email
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle")
+  const [usernameMessage, setUsernameMessage] = useState<string>("")
+  const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle")
+  const [emailMessage, setEmailMessage] = useState<string>("")
+
   useEffect(() => {
-    if (requestData) {
-      const firstName = requestData.firstName?.toLowerCase() || ""
-      const lastName = requestData.lastName?.toLowerCase() || ""
-      const suggestedUsername = `${firstName}.${lastName}`.replace(/\s+/g, "")
-      const suggestedEmail = `${firstName}${lastName}@empresa.com`
+  if (requestData?.fullName) {
+    const normalized = requestData.fullName
+      .normalize("NFD")                   // separa acentos
+      .replace(/[\u0300-\u036f]/g, "")   // remove acentos
+      .replace(/[^a-zA-Z\s]/g, "")       // remove caracteres especiais
+      .toLowerCase()
 
-      setFormData({
-        ...initialFormData,
-        username: suggestedUsername,
-        email: suggestedEmail,
-      })
-    }
-  }, [requestData])
+    const parts = normalized.trim().split(/\s+/)
+    const firstName = parts[0] || ""
+    const lastName = parts.length > 1 ? parts[parts.length - 1] : ""
+
+    const suggestedUsername = `${firstName}.${lastName}`
+    const suggestedEmail = `${firstName}${lastName}@empresa.com`
+
+    setFormData({
+      ...initialFormData,
+      username: suggestedUsername,
+      email: suggestedEmail,
+    })
+  }
+}, [requestData])
 
   const handleInputChange = (field: keyof CreateUserFromRequestData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
+
+  
+  // Função de validação de username
+  
+    async function validateUsername(username: string) {
+      if (!username) {
+        setUsernameStatus("idle")
+        setUsernameMessage("")
+        return false
+      }
+      setUsernameStatus("checking")
+      setUsernameMessage("Verificando...")
+      try {
+        const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/usernameverify?username=${username}`, {
+          method: "GET",
+        })
+        const data = await response.json()
+        if (response.ok && data.isAvailable) {
+          setUsernameStatus("available")
+          setUsernameMessage("Username disponível.")
+          return true
+        } else {
+          setUsernameStatus("unavailable")
+          setUsernameMessage(data.message || "Username indisponível.")
+          return false
+        }
+      } catch (error) {
+        console.error("Erro ao verificar username:", error)
+        setUsernameStatus("unavailable")
+        setUsernameMessage("Erro ao verificar username.")
+        return false
+      }
+    }
+
+  // Função de validação de email
+  async function validateEmail(email: string) {    
+      if (!email || !/\S+@\S+\.\S+/.test(email)) {
+        setEmailStatus("idle")
+        setEmailMessage("")
+        return false
+      }
+      setEmailStatus("checking")
+      setEmailMessage("Verificando...")
+      try {
+        const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/emailverify?email=${email}`, {
+          method: "GET",
+        })
+        const data = await response.json()
+        if (response.ok && data.isAvailable) {
+          setEmailStatus("available")
+          setEmailMessage("Email disponível.")
+          return true
+        } else {
+          setEmailStatus("unavailable")
+          setEmailMessage(data.message || "Email indisponível.")
+          return false
+        }
+      } catch (error) {
+        console.error("Erro ao verificar email:", error)
+        setEmailStatus("unavailable")
+        setEmailMessage("Erro ao verificar email.")
+        return false
+      }
+    }
+
 
   const toggleRole = (roleId: string) => {
     setFormData((prev) => {
@@ -141,6 +219,17 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha username, email e senha.",
+        variant: "destructive",
+      })
+      setIsLoading(false)
+      return
+    }
+
+    // Validação de disponibilidade de username e email
+    if (usernameStatus !== "available" || emailStatus !== "available") {
+      toast({
+        title: "Validação pendente ou falha",
+        description: "Por favor, verifique a disponibilidade do username e email.",
         variant: "destructive",
       })
       setIsLoading(false)
@@ -286,22 +375,86 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="username">Username *</Label>
-            <Input
-              id="username"
-              value={formData.username}
-              onChange={(e) => handleInputChange("username", e.target.value)}
-              required
-            />
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => handleInputChange("username", e.target.value)}
+                  required
+                  className={
+                    usernameStatus === "unavailable"
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : usernameStatus === "available"
+                      ? "border-green-500 focus-visible:ring-green-500"
+                      : ""
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => validateUsername(formData.username)}
+                  disabled={!formData.username || usernameStatus === "checking"}
+                  title="Validar username"
+                >
+                  {usernameStatus === "checking" && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 animate-spin" />
+                  )}
+                  {usernameStatus === "available" && (
+                    <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                  )}
+                  {usernameStatus === "unavailable" && (
+                    <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
+                  )}
+                  {emailStatus === "idle" && (
+                  <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
+                )}
+                </Button>
+              </div>   
+            </div>            
           </div>
           <div>
             <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
-              required
-            />
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  required
+                  className={
+                    emailStatus === "unavailable"
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : emailStatus === "available"
+                      ? "border-green-500 focus-visible:ring-green-500"
+                      : ""
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => validateEmail(formData.email)}
+                  disabled={!formData.email || emailStatus === "checking"}
+                  title="Validar email"
+                >
+                {emailStatus === "checking" && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 animate-spin" />
+                )}
+                {emailStatus === "available" && (
+                  <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                )}
+                {emailStatus === "unavailable" && (
+                  <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
+                )}
+                {emailStatus === "idle" && (
+                  <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
+                )}
+                </Button>
+              </div>              
+            </div>            
           </div>
           <div className="md:col-span-2">
             <Label htmlFor="password">Senha *</Label>
@@ -314,44 +467,6 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
               placeholder="Digite uma senha segura"
             />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Roles */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5" />
-            Roles (Funções)
-          </CardTitle>
-          <CardDescription>Selecione as roles que o usuário terá no sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {mockRoles.map((role) => (
-              <Button
-                key={role.id}
-                type="button"
-                variant={formData.roles.includes(role.id) ? "default" : "outline"}
-                onClick={() => toggleRole(role.id)}
-                className="justify-start"
-              >
-                {role.name}
-              </Button>
-            ))}
-          </div>
-          {formData.roles.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1">
-              {formData.roles.map((roleId) => {
-                const role = mockRoles.find((r) => r.id === roleId)
-                return (
-                  <Badge key={roleId} variant="secondary">
-                    {role?.name}
-                  </Badge>
-                )
-              })}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -462,7 +577,7 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
           <X className="h-4 w-4 mr-2" />
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading || usernameStatus !== "available" || emailStatus !== "available"}>
           {isLoading ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { getSystemFromPath } from "@/navigation/config"
 import { useAuth } from "@/features/auth/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { LogOut, User, Settings, Home } from "lucide-react"
+import { LogOut, User, Settings, Home, Menu, X } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,8 +20,12 @@ import { BackendStatusIndicator } from "./backend-status-indicator"
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 
-// Header simplificado sem toggle de sidebar
-export function SystemHeader() {
+interface SystemHeaderProps {
+  isSidebarCollapsed: boolean
+  onToggleSidebar: () => void
+}
+
+export function SystemHeader({ isSidebarCollapsed, onToggleSidebar }: SystemHeaderProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
@@ -49,6 +53,17 @@ export function SystemHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 sm:px-6">
       <div className="flex items-center gap-4">
+        {/* Botão para toggle do sidebar */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleSidebar}
+          className="h-9 w-9"
+          aria-label={isSidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+        >
+          {isSidebarCollapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
+        </Button>
+
         <Link href="/modules" className="flex items-center gap-2 text-lg font-semibold md:text-base">
           <Home className="h-6 w-6" />
           <span className="sr-only">Início</span>
@@ -61,7 +76,7 @@ export function SystemHeader() {
         <ThemeSelector />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
+            <Button variant="outline" size="icon" className="overflow-hidden rounded-full bg-transparent">
               <Avatar>
                 <AvatarImage src={user?.avatarUrl || "/placeholder.svg"} alt={user?.name} />
                 <AvatarFallback>{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
