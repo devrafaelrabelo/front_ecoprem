@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Save, X, User, Mail, Shield, Building, Users, XCircle, CheckCircle, Loader2 } from "lucide-react"
 import type { ApiDetailedUserRequest } from "@/types/user-request"
 import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
+import { ApiEndpoints } from "@/lib/api-endpoints"
 
 interface CreateUserFromRequestData {
   username: string
@@ -29,8 +30,6 @@ interface CreateUserFromRequestFormProps {
   onSuccess: (createdUserData: any) => void
   onCancel: () => void
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // Mock data - em produção, estes dados viriam de APIs
 const mockRoles = [
@@ -118,8 +117,9 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
       setUsernameStatus("checking")
       setUsernameMessage("Verificando...")
       try {
-        const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/usernameverify?username=${username}`, {
+        const response = await fetchWithValidation(`${ApiEndpoints.userhub.verifyUsername}`, {
           method: "GET",
+          body: JSON.stringify({ username }),
         })
         const data = await response.json()
         if (response.ok && data.isAvailable) {
@@ -149,7 +149,7 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
       setEmailStatus("checking")
       setEmailMessage("Verificando...")
       try {
-        const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/emailverify?email=${email}`, {
+        const response = await fetchWithValidation(`${ApiEndpoints.userhub.verifyEmail}${email}`, {
           method: "GET",
         })
         const data = await response.json()
@@ -277,11 +277,11 @@ export function CreateUserFromRequestForm({ requestData, onSuccess, onCancel }: 
     }
 
     try {
-      if (!API_BASE_URL) {
+      if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
         throw new Error("URL da API não configurada")
       }
 
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/create-from-request/${requestData.id}`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.createUserFromRequest}${requestData.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

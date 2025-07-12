@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
 
   // Verificar cookies de autenticação básicos
   const cookies = request.headers.get("cookie") || ""
-  const hasAuthCookies = ["ecoprem_auth_token", "ecoprem_refresh_token", "JSESSIONID", "SESSION"].some((cookieName) =>
+  const hasAuthCookies = [process.env.NEXT_PUBLIC_COOKIE_ACCESS, process.env.NEXT_PUBLIC_COOKIE_REFRESH, process.env.NEXT_PUBLIC_COOKIE_2FA].some((cookieName) =>
     cookies.includes(`${cookieName}=`),
   )
 

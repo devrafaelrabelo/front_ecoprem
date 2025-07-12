@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input" // Importar o Input padrão
 import { Label } from "@/components/ui/label" // Importar o Label padrão
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils" // Para classes condicionais
+import { config } from "@/config" // Importar a configuração do domínio permitido
 
 export function ForgotPasswordForm() {
   const [identifier, setIdentifier] = useState("")
@@ -18,8 +19,10 @@ export function ForgotPasswordForm() {
   const router = useRouter()
   const { toast } = useToast()
 
-  // Regex para validar email do domínio example.com
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@example\.com$/
+  // Regex para validar email do domínio example.com 
+  const domain = config.app.allowedEmailDomain
+  const emailRegex = new RegExp(`^[a-zA-Z0-9._%+-]+@${domain}\\.com$`)
+      
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

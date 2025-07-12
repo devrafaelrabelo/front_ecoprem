@@ -51,49 +51,7 @@ export const SYSTEMS_CONFIG: Record<Exclude<SystemId, "none">, SystemConfig> = {
     name: "Comercial",
     description: "Módulo Comercial.",
     homePath: "/comercial",
-  },
-  FINANCEIRO: {
-    id: "FINANCEIRO",
-    name: "Financeiro",
-    description: "Módulo Financeiro.",
-    homePath: "/financeiro",
-  },
-  OPERACIONAL: {
-    id: "OPERACIONAL",
-    name: "Operacional",
-    description: "Módulo Operacional.",
-    homePath: "/operacional",
-  },
-  MARKETING: {
-    id: "MARKETING",
-    name: "Marketing",
-    description: "Módulo de Marketing.",
-    homePath: "/marketing",
-  },
-  JURIDICO: {
-    id: "JURIDICO",
-    name: "Jurídico",
-    description: "Módulo Jurídico.",
-    homePath: "/juridico",
-  },
-  FISCAL: {
-    id: "FISCAL",
-    name: "Fiscal",
-    description: "Módulo Fiscal.",
-    homePath: "/fiscal",
-  },
-  CONTABIL: {
-    id: "CONTABIL",
-    name: "Contábil",
-    description: "Módulo Contábil.",
-    homePath: "/contabil",
-  },
-  ALMOXARIFADO: {
-    id: "ALMOXARIFADO",
-    name: "Almoxarifado",
-    description: "Módulo de Almoxarifado.",
-    homePath: "/almoxarifado",
-  },
+  }
 }
 
 export const SYSTEMS_CONFIG_WITH_NONE: Record<

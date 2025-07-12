@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+import { ApiEndpoints } from "@/lib/api-endpoints"
+
 
 async function fetchWithValidation(input: RequestInfo, init?: RequestInit): Promise<Response> {
   const response = await fetch(input, {
@@ -8,7 +9,7 @@ async function fetchWithValidation(input: RequestInfo, init?: RequestInit): Prom
 
   if (response.status === 401 || response.status === 403) {
     // Tenta validar sessão
-    const validate = await fetch(`${API_BASE_URL}/api/auth/session`, { method: "GET", credentials: "include" })
+    const validate = await fetch(`${ApiEndpoints.backend.validateToken}`, { method: "GET", credentials: "include" })
     if (validate.ok) {
       // Se a sessão ainda estiver válida (renovada), tenta novamente
       return fetch(input, {

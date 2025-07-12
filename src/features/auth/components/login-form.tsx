@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "../context/auth-context"
 import { authService } from "../services/auth-service"
 import { TwoFactorModal } from "./two-factor-modal"
+import { config } from "@/config" // Importar a configuração do domínio permitido
 
 export function LoginForm() {
   const [formData, setFormData] = useState({
@@ -53,8 +54,8 @@ export function LoginForm() {
   const validateEmailOrUser = (input: string): boolean => {
     // Se contém @, valida como email com regex específico
     if (input.includes("@")) {
-      // const emailRegex = /^[a-zA-Z0-9._%+-]+@bemprotege\.com\.br$/
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@example\.com$/
+      const domain = config.app.allowedEmailDomain
+      const emailRegex = new RegExp(`^[a-zA-Z0-9._%+-]+@${domain}\\.com$`)
       return emailRegex.test(input)
     }
     // Se não contém @, considera como usuário válido

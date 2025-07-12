@@ -1,4 +1,4 @@
-import { config } from "@/config"
+import { ApiEndpoints } from "@/lib/api-endpoints"
 
 export interface BackendHealthStatus {
   isOnline: boolean
@@ -15,11 +15,10 @@ export const checkBackendHealth = async (): Promise<BackendHealthStatus> => {
   const startTime = Date.now()
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-  const endpoint = `${config.api.baseUrl}/api/health`
-
+  
+  const endpoint = ApiEndpoints.backend.health
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(ApiEndpoints.backend.health, {
       method: "GET",
       headers: {
         Accept: "application/json", // manter
@@ -96,7 +95,7 @@ export const getBackendStatusMessage = async (): Promise<string> => {
       return `✅ Conectado ao servidor (${health.responseTime}ms)`
 
     case "offline":
-      return `❌ Servidor offline. Verifique se o Spring Boot está rodando em ${config.api.baseUrl}`
+      return `❌ Servidor offline. Verifique se o Spring Boot está rodando em ${process.env.NEXT_PUBLIC_API_BASE_URL}`
 
     case "timeout":
       return `⏱️ Servidor não responde. Verifique a conexão de rede`

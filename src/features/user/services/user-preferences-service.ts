@@ -1,4 +1,5 @@
 import { API_URL } from "@/config"
+import { ApiEndpoints } from "@/lib/api-endpoints"
 
 interface UserPreferences {
   theme?: "light" | "dark" | "system"
@@ -14,7 +15,7 @@ export const userPreferencesService = {
   async getUserPreferences(): Promise<UserPreferences> {
     try {
       // Buscar o tema
-      const themeResponse = await fetch(`${API_URL}/api/user/settings/theme`, {
+      const themeResponse = await fetch(`${ApiEndpoints.backend.userMenu}`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -69,7 +70,7 @@ export const userPreferencesService = {
    */
   async saveUserTheme(theme: "light" | "dark" | "system"): Promise<boolean> {
     try {
-      const response = await fetch(`${API_URL}/api/user/settings/theme`, {
+      const response = await fetch(`${ApiEndpoints.backend.userMenu}`, {
         method: "POST",
         credentials: "include",
         headers: {

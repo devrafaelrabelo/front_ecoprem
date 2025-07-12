@@ -18,8 +18,8 @@ import type {
   UserRequestFilters,
 } from "@/types/user-request"
 import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
+import { ApiEndpoints } from "@/lib/api-endpoints"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // Função para formatar CPF
 const formatCpfDisplay = (cpf: string): string => {
@@ -54,7 +54,7 @@ export default function CreateUserPage() {
 
   // Carregar lista de solicitações
   const loadRequests = useCallback(async () => {
-    if (!API_BASE_URL) {
+    if (!ApiEndpoints.backend.adminUserRequest) {
       setError("URL base da API não configurada. Verifique as variáveis de ambiente.")
       setIsLoading(false)
       toast({
@@ -69,7 +69,7 @@ export default function CreateUserPage() {
     setError(null)
 
     try {
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/request`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.adminUserRequest}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -160,7 +160,7 @@ export default function CreateUserPage() {
 
   // Carregar detalhes da solicitação
   const loadRequestDetails = async (requestId: string) => {
-    if (!API_BASE_URL) {
+    if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
       toast({
         title: "Erro de Configuração",
         description: "URL da API não configurada.",
@@ -171,7 +171,7 @@ export default function CreateUserPage() {
 
     try {
       setIsLoadingDetails(true)
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/admin/users/request/${requestId}`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.adminUserRequestId}${requestId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

@@ -37,8 +37,7 @@ import type {
 } from "@/types/user-request"
 import { useToast } from "@/components/ui/use-toast"
 import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+import { ApiEndpoints } from "@/lib/api-endpoints"
 
 // Função para formatar CPF (exemplo, pode ser mais robusta)
 const formatCpfDisplay = (cpf: string): string => {
@@ -79,7 +78,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
   const { toast } = useToast()
 
   const fetchUserRequests = useCallback(async () => {
-    if (!API_BASE_URL) {
+    if (!ApiEndpoints.backend.adminUserRequest) {
       setErrorList("URL base da API não configurada. Verifique as variáveis de ambiente.")
       setIsLoadingList(false)
       toast({
@@ -93,7 +92,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
     setIsLoadingList(true)
     setErrorList(null)
     try {
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequest}`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -194,7 +193,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
 
   const handleViewDetails = useCallback(
   async (request: MappedUserRequest) => {
-    if (!API_BASE_URL) {
+    if (!process.env.NEXT_PUBLIC_API_BASE_UR) {
       toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
       return
     }
@@ -205,7 +204,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
     setIsDetailsModalOpen(true)
 
     try {
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request/${request.id}`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequestId}${request.id}`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -257,14 +256,14 @@ export default function GerenciarSolicitacoesUsuarioPage() {
   const confirmCancelRequest = useCallback(async () => {
     if (!requestToCancelId) return // Não deve acontecer se o botão estiver desabilitado corretamente
 
-    if (!API_BASE_URL) {
+    if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
       toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
       return
     }
 
     setIsCancelling(true)
     try {
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request/${requestToCancelId}`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequestId}${requestToCancelId}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -298,10 +297,10 @@ export default function GerenciarSolicitacoesUsuarioPage() {
       setIsCancelConfirmOpen(false) // Fecha o modal de confirmação
       setRequestToCancelId(null) // Limpa o ID
     }
-  }, [requestToCancelId, API_BASE_URL, toast, fetchUserRequests])
+  }, [requestToCancelId, process.env.NEXT_PUBLIC_API_BASE_URL, toast, fetchUserRequests])
 
   const handleBatchDelete = async () => {
-    if (!API_BASE_URL) {
+    if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
       toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
       return
     }
@@ -321,7 +320,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
         requestIds: Array.from(selectedIds),
       }
 
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request/batch`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequest}`, {
         method: "DELETE",
         credentials: "include",
         headers: {

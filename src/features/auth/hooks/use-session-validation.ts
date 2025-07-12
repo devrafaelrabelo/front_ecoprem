@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { config } from "@/config" // Certifique-se que config.api.baseUrl está correto
+import { ApiEndpoints } from "@/lib/api-endpoints"
 
 interface SessionValidationResult {
   isValid: boolean
@@ -31,7 +31,7 @@ export function useSessionValidation(): UseSessionValidationReturn {
       return sessionData
     }
 
-    if (!config.api.baseUrl || config.api.baseUrl.includes("localhost:3000/api")) {
+    if (!process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL.includes("localhost:3000/api")) {
       // Se a URL base não estiver configurada para uma API externa, ou ainda aponta para API routes locais
       // que não existem para /auth/session, retorne um erro ou um estado padrão.
       console.warn(
@@ -48,10 +48,10 @@ export function useSessionValidation(): UseSessionValidationReturn {
     }
 
     setIsValidating(true)
-    console.log(`🔍 useSessionValidation: Validando sessão com backend em ${config.api.baseUrl}/api/auth/session...`)
+    console.log(`🔍 useSessionValidation: Validando sessão com backend em ${ApiEndpoints.backend.validateToken}...`)
 
     try {
-      const response = await fetch(`${config.api.baseUrl}/api/auth/session`, {
+      const response = await fetch(`${ApiEndpoints.backend.validateToken}`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -116,7 +116,7 @@ export function useSessionValidation(): UseSessionValidationReturn {
     } finally {
       setIsValidating(false)
     }
-  }, [sessionData, CACHE_TTL]) // Removido config.api.baseUrl da dependência, pois é improvável que mude em tempo de execução
+  }, [sessionData, CACHE_TTL]) // Removido process.env.NEXT_PUBLIC_API_BASE_URL da dependência, pois é improvável que mude em tempo de execução
 
   const clearSession = useCallback(() => {
     setSessionData(null)

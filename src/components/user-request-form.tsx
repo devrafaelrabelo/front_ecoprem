@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import type { UserFormData, CreateUserRequestPayload } from "@/types/user-request"
 import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
+import { ApiEndpoints } from "@/lib/api-endpoints"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 interface UserRequestFormProps {
   onSubmissionSuccess?: (data: UserFormData) => void
@@ -65,10 +65,20 @@ export function UserRequestForm({ onSubmissionSuccess, onCancel }: UserRequestFo
     if (!cpf || !dtNascimento || dtNascimento.length !== 10) return
     setIsLoadingName(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      const mockResponse = { nome: "Nome Completo Simulado via CPF" }
-      setFormData((prev) => ({ ...prev, nome: mockResponse.nome }))
-      toast({ title: "Nome encontrado!", description: `(Simulado) Dados encontrados para CPF ${cpf}` })
+      const response = await fetch(ApiEndpoints.selenium.consultarcpf, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          cpf,
+          data_nascimento: dtNascimento, 
+        }),
+      })
+      const data = await response.json()
+      setFormData((prev) => ({ ...prev, nome: data.nome || "" }))
+      toast({ title: "Nome encontrado!", description: data.nome })
     } catch (error) {
       toast({ title: "Erro ao buscar dados", variant: "destructive" })
     } finally {
@@ -188,7 +198,7 @@ export function UserRequestForm({ onSubmissionSuccess, onCancel }: UserRequestFo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!API_BASE_URL) {
+    if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
       toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
       return
     }
@@ -211,7 +221,7 @@ export function UserRequestForm({ onSubmissionSuccess, onCancel }: UserRequestFo
     }
 
     try {
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/request`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequest}`, {
         method: "POST",
         credentials: "include",
         headers: {

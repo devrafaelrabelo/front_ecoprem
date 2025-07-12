@@ -20,24 +20,35 @@ Base sólida para desenvolvimento de projetos com Next.js, TypeScript e Tailwind
 ## Instalação
 
 \`\`\`bash
+
 # Clone o repositório
+
 git clone https://github.com/seu-usuario/projectbasepronto.git
 
 # Entre no diretório
+
 cd projectbasepronto
 
 # Instale as dependências
+
 npm install
+
 # ou
+
 yarn install
 
 # Configure o nome do sistema (opcional)
+
 # Crie um arquivo .env.local e adicione:
+
 # NEXT_PUBLIC_SYSTEM_NAME="Seu Sistema"
 
 # Inicie o servidor de desenvolvimento
+
 npm run dev
+
 # ou
+
 yarn dev
 \`\`\`
 
@@ -67,13 +78,13 @@ O projeto segue uma estrutura organizada por features, com separação clara de 
 
 \`\`\`
 src/
-├── app/                  # Diretórios de rotas do Next.js App Router
-├── components/           # Componentes compartilhados
-├── features/             # Módulos organizados por funcionalidade
-├── hooks/                # Hooks personalizados
-├── lib/                  # Utilitários e funções auxiliares
-├── providers/            # Provedores de contexto
-└── docs/                 # Documentação do projeto
+├── app/ # Diretórios de rotas do Next.js App Router
+├── components/ # Componentes compartilhados
+├── features/ # Módulos organizados por funcionalidade
+├── hooks/ # Hooks personalizados
+├── lib/ # Utilitários e funções auxiliares
+├── providers/ # Provedores de contexto
+└── docs/ # Documentação do projeto
 \`\`\`
 
 ## Documentação
@@ -88,4 +99,44 @@ Todas as funcionalidades são simuladas para facilitar o desenvolvimento. As var
 
 ## Licença
 
-MIT
+# 🌐 AppGestaoTI Frontend - Configuração de Ambiente
+
+Este projeto utiliza variáveis de ambiente para configurar os endpoints de API, autenticação e preferências visuais do usuário.
+
+---
+
+## 📁 Arquivos `.env` disponíveis
+
+- `.env.local` → Ambiente de desenvolvimento local
+- `.env.production` → Ambiente de produção (Docker ou deploy)
+- `.env.test` → Ambiente de testes locais
+
+---
+
+## 🔑 Variáveis importantes
+
+| Variável                          | Descrição                                |
+| --------------------------------- | ---------------------------------------- |
+| `NEXT_PUBLIC_API_BASE_URL`        | URL da API Java (Spring Boot)            |
+| `NEXT_PUBLIC_API_USERHUB_URL`     | URL da API de Usuários (FastAPI)         |
+| `NEXT_PUBLIC_API_SELENIUM_URL`    | URL da API de Consulta CPF               |
+| `NEXT_PUBLIC_WPP_API_URL`         | URL da API do WhatsApp (WPPConnect)      |
+| `NEXT_PUBLIC_COOKIE_*`            | Nomes dos cookies usados na autenticação |
+| `NEXT_PUBLIC_HEADER_AUTH_STATUS`  | Header usado para validação de sessão    |
+| `NEXT_PUBLIC_REVALIDATE_INTERVAL` | Intervalo de revalidação SWR (em ms)     |
+
+---
+
+## ⚙️ Recomendação
+
+Use `process.env.NEXT_PUBLIC_*` apenas no **frontend**. O backend deve usar suas próprias variáveis (`application.yml`, `.env` etc.).
+
+---
+
+## 🧪 Rodando localmente
+
+```bash
+cp .env.local.example .env.local
+pnpm install
+pnpm dev
+```

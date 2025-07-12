@@ -1,4 +1,4 @@
-import { config } from "@/config"
+import { ApiEndpoints } from "@/lib/api-endpoints" 
 import { checkBackendHealth, getBackendStatusMessage } from "../utils/backend-health"
 import fetchWithValidation from "./fetch-with-validation"
 
@@ -84,7 +84,7 @@ export const authService = {
         }
       }
 
-      const response = await fetch(`${config.api.baseUrl}/api/auth/login`, {
+      const response = await fetch(`${ApiEndpoints.backend.login}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -200,7 +200,7 @@ export const authService = {
     try {
       console.log("🔐 Verificando código 2FA...")
 
-      const response = await fetch(`${config.api.baseUrl}/api/auth/verify-2fa`, {
+      const response = await fetch(`${ApiEndpoints.backend.verify2fa}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -288,7 +288,7 @@ export const authService = {
       console.log("🔄 Verificando usuário atual com backend (/me)...")
 
       // Endpoint /me para obter dados do usuário
-      const response = await fetchWithValidation(`${config.api.baseUrl}/api/user/me`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.myProfile}`, {
         // Alterado para /api/users/me
         method: "GET",
         headers: {
@@ -329,7 +329,7 @@ export const authService = {
     console.log("🚪 Iniciando logout...")
 
     try {
-      const response = await fetch(`${config.api.baseUrl}/api/auth/logout`, {
+      const response = await fetch(`${ApiEndpoints.backend.logout}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

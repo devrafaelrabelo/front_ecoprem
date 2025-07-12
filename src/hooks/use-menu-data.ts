@@ -4,8 +4,7 @@ import { useState, useEffect } from "react"
 import type { MenuData, ProcessedMenuData } from "@/types/menu"
 import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 import { processMenuData } from "@/app/utils/menu-permissions"
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+import { ApiEndpoints } from "@/lib/api-endpoints"
 
 export function useMenuData() {
   const [menuData, setMenuData] = useState<ProcessedMenuData | null>(null)
@@ -17,7 +16,7 @@ export function useMenuData() {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetchWithValidation(`${API_BASE_URL}/api/user/permissions`)  
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.userPermissions}`) 
 
       if (!response.ok) {
         throw new Error(`Erro ao buscar dados do menu: ${response.status}`)

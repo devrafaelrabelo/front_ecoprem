@@ -2,8 +2,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,19 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Edit3, Trash2, Eye } from "lucide-react"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
+// Removed date-fns imports as createdAt is no longer in the User model
 
 export interface User {
   id: string
-  firstName: string
-  lastName: string
   username: string
   email: string
-  roles: string[]
-  status: "Active" | "Inactive" | "Pending"
-  createdAt: string // ISO date string
-  avatar?: string
+  fullName: string | null // fullName can be null based on your example
+  // Removed roles, status, createdAt, avatar as per new JSON model
 }
 
 interface TiUserTableProps {
@@ -36,29 +30,14 @@ interface TiUserTableProps {
   onDeleteUser: (userId: string) => void
 }
 
-// Helper to get initials for AvatarFallback
-const getInitials = (firstName: string, lastName: string) => {
-  return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase()
-}
-
-// Role display mapping (optional, for better labels)
-const roleDisplayNames: { [key: string]: string } = {
-  admin: "Admin",
-  user: "Usuário",
-  supervisor: "Supervisor",
-  gestor: "Gestor",
-}
-
-const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
-  Active: "default",
-  Inactive: "secondary",
-  Pending: "outline",
-}
-
-const statusLabel: { [key: string]: string } = {
-  Active: "Ativo",
-  Inactive: "Inativo",
-  Pending: "Pendente",
+// Helper to get initials from fullName
+const getInitials = (fullName: string | null) => {
+  if (!fullName) return ""
+  const parts = fullName.split(" ")
+  if (parts.length === 1) {
+    return parts[0][0]?.toUpperCase() || ""
+  }
+  return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase()
 }
 
 export function TiUserTable({
@@ -102,11 +81,10 @@ export function TiUserTable({
                 className={isIndeterminate ? "data-[state=checked]:bg-primary/50" : ""}
               />
             </TableHead>
-            <TableHead className="min-w-[180px]">Usuário</TableHead>
+            <TableHead className="min-w-[180px]">Nome Completo</TableHead>
+            <TableHead>Username</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Roles</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Criado em</TableHead>
+            {/* Removed Roles, Status, Criado em columns */}
             <TableHead className="w-[80px] text-right pr-4">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -117,41 +95,26 @@ export function TiUserTable({
                 <Checkbox
                   checked={selectedUserIds.has(user.id)}
                   onCheckedChange={(checked) => handleSelectRow(user.id, !!checked)}
-                  aria-label={`Selecionar ${user.firstName} ${user.lastName}`}
+                  aria-label={`Selecionar ${user.fullName || user.username}`}
                 />
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.avatar || "/placeholder.svg"} alt={`${user.firstName} ${user.lastName}`} />
-                    <AvatarFallback>{getInitials(user.firstName, user.lastName)}</AvatarFallback>
+                    {/* AvatarImage src removed as avatar field is no longer in User model */}
+                    <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
                   </Avatar>
                   <div>
                     <div className="font-medium">
-                      {user.firstName} {user.lastName}
+                      {user.fullName || <span className="text-muted-foreground">(Nome não informado)</span>}
                     </div>
                     <div className="text-xs text-muted-foreground">@{user.username}</div>
                   </div>
                 </div>
               </TableCell>
+              <TableCell className="text-sm text-muted-foreground">{user.username}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {user.roles.map((role) => (
-                    <Badge key={role} variant="secondary" className="text-xs">
-                      {roleDisplayNames[role] || role}
-                    </Badge>
-                  ))}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={statusVariant[user.status] || "outline"} className="text-xs capitalize">
-                  {statusLabel[user.status] || user.status}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {format(new Date(user.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-              </TableCell>
+              {/* Removed Roles, Status, Criado em cells */}
               <TableCell className="text-right pr-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
