@@ -1,14 +1,6 @@
 "use client"
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-
-const accessLevelOptions = [
-  { value: "1", label: "Nível 1 (Básico)" },
-  { value: "2", label: "Nível 2 (Intermediário)" },
-  { value: "3", label: "Nível 3 (Avançado)" },
-  // Add more access levels as needed
-]
 
 interface SelectAccessLevelProps {
   value: string
@@ -16,18 +8,29 @@ interface SelectAccessLevelProps {
   disabled?: boolean
 }
 
-export function SelectAccessLevel({ value, onChange, disabled }: SelectAccessLevelProps) {
+// Mock access level data - replace with actual API call
+const accessLevels = [
+  { id: "read", name: "Somente Leitura", description: "Pode visualizar informações" },
+  { id: "write", name: "Leitura e Escrita", description: "Pode visualizar e editar informações" },
+  { id: "admin", name: "Administrador", description: "Acesso completo ao sistema" },
+  { id: "supervisor", name: "Supervisor", description: "Pode gerenciar usuários do seu departamento" },
+]
+
+export function SelectAccessLevel({ value, onChange, disabled = false }: SelectAccessLevelProps) {
   return (
-    <div className="grid w-full gap-1.5">
-      <Label htmlFor="accessLevel">Nível de Acesso</Label>
-      <Select onValueChange={onChange} value={value} disabled={disabled}>
-        <SelectTrigger id="accessLevel">
-          <SelectValue placeholder="Selecione um nível de acesso" />
+    <div className="space-y-1">
+      <Label className="text-xs">Nível de Acesso *</Label>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger className="h-10">
+          <SelectValue placeholder="Selecione o nível de acesso" />
         </SelectTrigger>
         <SelectContent>
-          {accessLevelOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
+          {accessLevels.map((level) => (
+            <SelectItem key={level.id} value={level.id}>
+              <div className="flex flex-col">
+                <span>{level.name}</span>
+                <span className="text-xs text-muted-foreground">{level.description}</span>
+              </div>
             </SelectItem>
           ))}
         </SelectContent>

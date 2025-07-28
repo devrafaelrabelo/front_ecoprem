@@ -1,14 +1,6 @@
 "use client"
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-
-const departmentOptions = [
-  { value: "Comercial", label: "Comercial" },
-  { value: "RH", label: "RH" },
-  { value: "TI", label: "TI" },
-  // Add more departments as needed
-]
 
 interface SelectDepartmentProps {
   value: string
@@ -16,18 +8,27 @@ interface SelectDepartmentProps {
   disabled?: boolean
 }
 
-export function SelectDepartment({ value, onChange, disabled }: SelectDepartmentProps) {
+// Mock department data - replace with actual API call
+const departments = [
+  { id: "ti", name: "Tecnologia da Informação" },
+  { id: "rh", name: "Recursos Humanos" },
+  { id: "comercial", name: "Comercial" },
+  { id: "financeiro", name: "Financeiro" },
+  { id: "operacoes", name: "Operações" },
+]
+
+export function SelectDepartment({ value, onChange, disabled = false }: SelectDepartmentProps) {
   return (
-    <div className="grid w-full gap-1.5">
-      <Label htmlFor="department">Departamento</Label>
-      <Select onValueChange={onChange} value={value} disabled={disabled}>
-        <SelectTrigger id="department">
-          <SelectValue placeholder="Selecione um departamento" />
+    <div className="space-y-1">
+      <Label className="text-xs">Departamento *</Label>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger className="h-10">
+          <SelectValue placeholder="Selecione o departamento" />
         </SelectTrigger>
         <SelectContent>
-          {departmentOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
+          {departments.map((dept) => (
+            <SelectItem key={dept.id} value={dept.id}>
+              {dept.name}
             </SelectItem>
           ))}
         </SelectContent>

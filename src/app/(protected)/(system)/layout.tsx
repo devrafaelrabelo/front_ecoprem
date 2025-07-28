@@ -8,9 +8,9 @@ import { getSystemFromPath, SYSTEMS_CONFIG } from "@/navigation/config"
 import { useAuth } from "@/features/auth/context/auth-context"
 import { SystemHeader } from "@/components/system-header"
 import { SystemSidebar } from "@/components/system-sidebar"
+import { SiteFooter } from "@/components/site-footer"
 
-// Layout de sistema com card de conteúdo flutuante
-export default function SystemLayout({
+export default function StandardizedSystemLayout({
   children,
 }: {
   children: React.ReactNode
@@ -19,7 +19,7 @@ export default function SystemLayout({
   const router = useRouter()
   const { isAuthenticated, isLoading: authIsLoading, user } = useAuth()
   const [selectedSystemId, setSelectedSystemId] = useSessionStorage<string | null>("selectedSystem", null)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useSessionStorage<boolean>("sidebarCollapsed", true)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useSessionStorage<boolean>("sidebarCollapsed", false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
 
   const currentSystem = getSystemFromPath(pathname)
@@ -63,7 +63,11 @@ export default function SystemLayout({
   if (authIsLoading || isInitialLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-muted">
-        <p className="text-lg">Carregando sistema...</p>
+        <div className="text-center space-y-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-lg font-semibold">Carregando sistema...</p>
+          <p className="text-sm text-muted-foreground">Por favor, aguarde.</p>
+        </div>
       </div>
     )
   }
@@ -79,30 +83,38 @@ export default function SystemLayout({
     router.replace("/modules")
     return (
       <div className="flex items-center justify-center min-h-screen bg-muted">
-        <p className="text-lg">Redirecionando...</p>
+        <div className="text-center space-y-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-lg">Redirecionando...</p>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/50 dark:bg-[#0A0A0A]">
-      {/* Header - sempre no topo e largura total */}
+      {/* Header fixo no topo */}
       <SystemHeader isSidebarCollapsed={isSidebarCollapsed} onToggleSidebar={handleToggleSidebar} />
 
-      {/* Container para Sidebar e Conteúdo Principal */}
+      {/* Container principal com sidebar e conteúdo */}
       <div className="flex flex-1">
-        {/* Sidebar - fixo, posicionado abaixo do header */}
+        {/* Sidebar */}
         <SystemSidebar isCollapsed={isSidebarCollapsed} onToggle={handleToggleSidebar} />
 
-        {/* Área de conteúdo principal com fundo distinto e padding */}
-        <main
-          className={`flex-1 transition-all duration-300 pr-6 pb-6 ${isSidebarCollapsed ? "ml-16" : "ml-64"}`}
-        >
-          {/* Card flutuante para o conteúdo */}
-          <div className="w-full h-full bg-card rounded-2xl shadow-md overflow-y-auto">
-            <div className="p-6 sm:p-8">{children}</div>
+        {/* Área de conteúdo principal */}
+        <div className={`flex flex-1 flex-col transition-all duration-300 ${isSidebarCollapsed ? "ml-16" : "ml-64"}`}>
+          {/* Main content area */}
+          <main className="flex-1 p-6">
+            <div className="w-full h-full bg-card rounded-2xl shadow-md border overflow-hidden">
+              <div className="p-6 sm:p-8 h-full overflow-y-auto">{children}</div>
+            </div>
+          </main>
+
+          {/* Footer dentro da área de conteúdo */}
+          <div className="px-6 pb-6">
+            <SiteFooter />
           </div>
-        </main>
+        </div>
       </div>
     </div>
   )

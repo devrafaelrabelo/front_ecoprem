@@ -1,53 +1,57 @@
 "use client"
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-
-const userGroupOptions: Record<string, { value: string; label: string }[]> = {
-  Comercial: [
-    { value: "consultor_comercial", label: "Consultor Comercial" },
-    { value: "gestor_comercial", label: "Gestor Comercial" },
-    { value: "supervisor_comercial", label: "Supervisor Comercial" },
-  ],
-  RH: [
-    { value: "analista_rh", label: "Analista RH" },
-    { value: "gestor_rh", label: "Gestor RH" },
-    { value: "supervisor_rh", label: "Supervisor RH" },
-  ],
-  TI: [
-    { value: "analista_ti", label: "Analista TI" },
-    { value: "desenvolvedor_ti", label: "Desenvolvedor TI" },
-    { value: "gestor_ti", label: "Gestor TI" },
-    { value: "supervisor_ti", label: "Supervisor TI" },
-  ],
-  // Add more user groups per department as needed
-}
 
 interface SelectUserGroupProps {
   value: string
   onChange: (value: string) => void
-  departmentId: string | undefined
+  departmentId: string
   disabled?: boolean
 }
 
-export function SelectUserGroup({ value, onChange, departmentId, disabled }: SelectUserGroupProps) {
-  const currentGroupOptions = departmentId ? userGroupOptions[departmentId] || [] : []
+// Mock user group data - replace with actual API call
+const userGroups: Record<string, Array<{ id: string; name: string }>> = {
+  ti: [
+    { id: "ti-dev", name: "Desenvolvedores" },
+    { id: "ti-infra", name: "Infraestrutura" },
+    { id: "ti-suporte", name: "Suporte" },
+  ],
+  rh: [
+    { id: "rh-recrutamento", name: "Recrutamento" },
+    { id: "rh-folha", name: "Folha de Pagamento" },
+    { id: "rh-beneficios", name: "Benefícios" },
+  ],
+  comercial: [
+    { id: "comercial-vendas", name: "Vendas" },
+    { id: "comercial-marketing", name: "Marketing" },
+    { id: "comercial-pos-vendas", name: "Pós-vendas" },
+  ],
+  financeiro: [
+    { id: "financeiro-contas-pagar", name: "Contas a Pagar" },
+    { id: "financeiro-contas-receber", name: "Contas a Receber" },
+    { id: "financeiro-controladoria", name: "Controladoria" },
+  ],
+  operacoes: [
+    { id: "operacoes-producao", name: "Produção" },
+    { id: "operacoes-logistica", name: "Logística" },
+    { id: "operacoes-qualidade", name: "Qualidade" },
+  ],
+}
+
+export function SelectUserGroup({ value, onChange, departmentId, disabled = false }: SelectUserGroupProps) {
+  const availableGroups = departmentId ? userGroups[departmentId] || [] : []
 
   return (
-    <div className="grid w-full gap-1.5">
-      <Label htmlFor="userGroup">Grupo de Usuário</Label>
-      <Select
-        onValueChange={onChange}
-        value={value}
-        disabled={disabled || !departmentId || currentGroupOptions.length === 0}
-      >
-        <SelectTrigger id="userGroup">
-          <SelectValue placeholder={!departmentId ? "Selecione um departamento primeiro" : "Selecione um grupo"} />
+    <div className="space-y-1">
+      <Label className="text-xs">Grupo de Usuário *</Label>
+      <Select value={value} onValueChange={onChange} disabled={disabled || !departmentId}>
+        <SelectTrigger className="h-10">
+          <SelectValue placeholder={departmentId ? "Selecione o grupo" : "Selecione um departamento primeiro"} />
         </SelectTrigger>
         <SelectContent>
-          {currentGroupOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
+          {availableGroups.map((group) => (
+            <SelectItem key={group.id} value={group.id}>
+              {group.name}
             </SelectItem>
           ))}
         </SelectContent>

@@ -6,7 +6,7 @@ import { UserRequestForm } from "@/components/user-request-form"
 import { UserRequestTable } from "@/components/user-request-table"
 import { UserRequestFiltersComponent } from "@/components/user-request-filters"
 import { UserRequestDetailsModal } from "@/components/user-request-details-modal"
-import { PlusCircle, AlertTriangle, Loader2, Trash2 } from "lucide-react"
+import { PlusCircle, AlertTriangle, Loader2, Trash2, Users, FileText, Clock } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
   Dialog,
@@ -38,15 +38,16 @@ import type {
 import { useToast } from "@/components/ui/use-toast"
 import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 import { ApiEndpoints } from "@/lib/api-endpoints"
+import { usePathname } from "next/navigation"
+import { getSystemFromPath } from "@/navigation/config"
 
-// Função para formatar CPF (exemplo, pode ser mais robusta)
 const formatCpfDisplay = (cpf: string): string => {
   if (!cpf) return ""
   const cleaned = cpf.replace(/\D/g, "")
   if (cleaned.length === 11) {
     return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
   }
-  return cpf // Retorna original se não for um CPF de 11 dígitos
+  return cpf
 }
 
 const initialFilters: UserRequestFilters = {
@@ -70,10 +71,12 @@ export default function GerenciarSolicitacoesUsuarioPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Novos estados para o modal de confirmação de cancelamento
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false)
   const [requestToCancelId, setRequestToCancelId] = useState<string | null>(null)
-  const [isCancelling, setIsCancelling] = useState(false) // Estado para o loading do cancelamento
+  const [isCancelling, setIsCancelling] = useState(false)
+  const pathname = usePathname()
+  const currentSystem = getSystemFromPath(pathname)   
+  let apiUrl = `${ApiEndpoints.backend.userRequestsList}`;
 
   const { toast } = useToast()
 
@@ -92,7 +95,11 @@ export default function GerenciarSolicitacoesUsuarioPage() {
     setIsLoadingList(true)
     setErrorList(null)
     try {
-      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequest}`, {
+      if (currentSystem.name === "TI") {
+        apiUrl = `${ApiEndpoints.backend.adminUserRequestsList}`
+      }
+
+      const response = await fetchWithValidation(apiUrl, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -100,7 +107,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
           "Content-Type": "application/json",
           "X-Requested-With": "XMLHttpRequest",
         },
-        signal: AbortSignal.timeout(8000), // Timeout de 8 segundos
+        signal: AbortSignal.timeout(8000),
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -136,15 +143,12 @@ export default function GerenciarSolicitacoesUsuarioPage() {
     fetchUserRequests()
   }, [fetchUserRequests])
 
-  // Filtrar solicitações baseado nos filtros aplicados
   const filteredRequests = useMemo(() => {
     return requests.filter((request) => {
-      // Filtro por status
       if (filters.status && filters.status !== "all" && request.status !== filters.status) {
         return false
       }
 
-      // Filtro por termo de busca (nome ou CPF)
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase()
         const matchesName = request.fullName.toLowerCase().includes(searchLower)
@@ -154,7 +158,6 @@ export default function GerenciarSolicitacoesUsuarioPage() {
         }
       }
 
-      // Filtro por data inicial
       if (filters.dateFrom) {
         const requestDate = new Date(request.requestDate)
         const fromDate = new Date(filters.dateFrom)
@@ -163,11 +166,10 @@ export default function GerenciarSolicitacoesUsuarioPage() {
         }
       }
 
-      // Filtro por data final
       if (filters.dateTo) {
         const requestDate = new Date(request.requestDate)
         const toDate = new Date(filters.dateTo)
-        toDate.setHours(23, 59, 59, 999) // Incluir todo o dia final
+        toDate.setHours(23, 59, 59, 999)
         if (requestDate > toDate) {
           return false
         }
@@ -177,10 +179,20 @@ export default function GerenciarSolicitacoesUsuarioPage() {
     })
   }, [requests, filters])
 
+  // Estatísticas das solicitações
+  const requestStats = useMemo(() => {
+    return {
+      total: requests.length,
+      pending: requests.filter((req) => req.status === "PENDING").length,
+      approved: requests.filter((req) => req.status === "APPROVED").length,
+      rejected: requests.filter((req) => req.status === "REJECTED").length,
+    }
+  }, [requests])
+
   const handleNewRequestSuccess = (newRequestData: UserFormData) => {
     console.log("Nova solicitação enviada (dados do form):", newRequestData)
     setIsModalOpen(false)
-    fetchUserRequests() // Atualiza a lista após o sucesso
+    fetchUserRequests()
     toast({
       title: "Solicitação Criada!",
       description: "Sua nova solicitação de usuário foi enviada com sucesso.",
@@ -192,69 +204,67 @@ export default function GerenciarSolicitacoesUsuarioPage() {
   }
 
   const handleViewDetails = useCallback(
-  async (request: MappedUserRequest) => {
-    if (!process.env.NEXT_PUBLIC_API_BASE_UR) {
-      toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
-      return
-    }
-
-    setIsLoadingDetails(true)
-    setErrorDetails(null)
-    setSelectedRequestForDetails(null)
-    setIsDetailsModalOpen(true)
-
-    try {
-      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequestId}${request.id}`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        signal: AbortSignal.timeout(8000),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(
-          `Erro ao buscar detalhes: ${response.status} ${response.statusText} - ${errorData.message || ""}`,
-        )
+    async (request: MappedUserRequest) => {
+      if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
+        toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
+        return
       }
 
-      const detailedData: ApiDetailedUserRequest = await response.json()
-      setSelectedRequestForDetails(detailedData)
-    } catch (err) {
-      console.error("Erro ao buscar detalhes da solicitação:", err)
-      const errorMessage = err instanceof Error ? err.message : "Ocorreu um erro desconhecido."
-      setErrorDetails(errorMessage)
-      toast({
-        title: "Erro ao Carregar Detalhes",
-        description: errorMessage,
-        variant: "destructive",
-      })
-      setIsDetailsModalOpen(false)
-    } finally {
-      setIsLoadingDetails(false)
-    }
-  },
-  [toast],
-)
+      setIsLoadingDetails(true)
+      setErrorDetails(null)
+      setSelectedRequestForDetails(null)
+      setIsDetailsModalOpen(true)
+
+      try {
+        const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequestId}${request.id}`, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          signal: AbortSignal.timeout(8000),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(
+            `Erro ao buscar detalhes: ${response.status} ${response.statusText} - ${errorData.message || ""}`,
+          )
+        }
+
+        const detailedData: ApiDetailedUserRequest = await response.json()
+        setSelectedRequestForDetails(detailedData)
+      } catch (err) {
+        console.error("Erro ao buscar detalhes da solicitação:", err)
+        const errorMessage = err instanceof Error ? err.message : "Ocorreu um erro desconhecido."
+        setErrorDetails(errorMessage)
+        toast({
+          title: "Erro ao Carregar Detalhes",
+          description: errorMessage,
+          variant: "destructive",
+        })
+        setIsDetailsModalOpen(false)
+      } finally {
+        setIsLoadingDetails(false)
+      }
+    },
+    [toast],
+  )
 
   const handleCloseDetailsModal = () => {
     setIsDetailsModalOpen(false)
     setSelectedRequestForDetails(null)
-    setErrorDetails(null) // Limpa o erro ao fechar
+    setErrorDetails(null)
   }
 
-  // Função que abre o AlertDialog de confirmação de cancelamento
   const handleCancelRequest = (requestId: string) => {
     setRequestToCancelId(requestId)
     setIsCancelConfirmOpen(true)
   }
 
-  // Função que executa o cancelamento após a confirmação no AlertDialog
   const confirmCancelRequest = useCallback(async () => {
-    if (!requestToCancelId) return // Não deve acontecer se o botão estiver desabilitado corretamente
+    if (!requestToCancelId) return
 
     if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
       toast({ title: "Erro de Configuração", description: "URL da API não configurada.", variant: "destructive" })
@@ -270,7 +280,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
           "Content-Type": "application/json",
           "X-Requested-With": "XMLHttpRequest",
         },
-        signal: AbortSignal.timeout(8000), // Timeout de 8 segundos
+        signal: AbortSignal.timeout(8000),
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -284,7 +294,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
         title: "Solicitação Cancelada",
         description: "A solicitação foi marcada como cancelada (simulado).",
       })
-      fetchUserRequests() // Recarrega a lista
+      fetchUserRequests()
     } catch (error) {
       console.error("Erro ao cancelar solicitação:", error)
       toast({
@@ -294,10 +304,10 @@ export default function GerenciarSolicitacoesUsuarioPage() {
       })
     } finally {
       setIsCancelling(false)
-      setIsCancelConfirmOpen(false) // Fecha o modal de confirmação
-      setRequestToCancelId(null) // Limpa o ID
+      setIsCancelConfirmOpen(false)
+      setRequestToCancelId(null)
     }
-  }, [requestToCancelId, process.env.NEXT_PUBLIC_API_BASE_URL, toast, fetchUserRequests])
+  }, [requestToCancelId, toast, fetchUserRequests])
 
   const handleBatchDelete = async () => {
     if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
@@ -329,7 +339,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
           "X-Requested-With": "XMLHttpRequest",
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(10000), // Timeout de 10 segundos
+        signal: AbortSignal.timeout(10000),
       })
 
       if (!response.ok) {
@@ -344,8 +354,8 @@ export default function GerenciarSolicitacoesUsuarioPage() {
         description: `${selectedIds.size} solicitação(ões) foram excluídas com sucesso.`,
       })
 
-      setSelectedIds(new Set()) // Limpar seleção
-      fetchUserRequests() // Recarregar lista
+      setSelectedIds(new Set())
+      fetchUserRequests()
     } catch (error) {
       console.error("Erro ao excluir solicitações:", error)
       toast({
@@ -371,7 +381,84 @@ export default function GerenciarSolicitacoesUsuarioPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-8">
+    <div className="space-y-6">
+      {/* Header da página */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <FileText className="h-8 w-8" />
+            Solicitações de Usuário
+          </h1>
+          <p className="text-muted-foreground mt-1">Visualize e gerencie suas solicitações de criação de usuário</p>
+        </div>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg">
+              <PlusCircle className="mr-2 h-5 w-5" />
+              Nova Solicitação
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Nova Solicitação de Usuário</DialogTitle>
+              <DialogDescription>
+                Preencha os dados abaixo para solicitar a criação de um novo usuário.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <UserRequestForm onSubmissionSuccess={handleNewRequestSuccess} onCancel={handleFormCancel} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Cards de estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Solicitações</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{requestStats.total}</div>
+            <p className="text-xs text-muted-foreground">solicitações criadas</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{requestStats.pending}</div>
+            <p className="text-xs text-muted-foreground">aguardando análise</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Aprovadas</CardTitle>
+            <Users className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{requestStats.approved}</div>
+            <p className="text-xs text-muted-foreground">solicitações aprovadas</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejeitadas</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{requestStats.rejected}</div>
+            <p className="text-xs text-muted-foreground">solicitações rejeitadas</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filtros */}
       <UserRequestFiltersComponent
         filters={filters}
@@ -425,25 +512,6 @@ export default function GerenciarSolicitacoesUsuarioPage() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Nova Solicitação
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Nova Solicitação de Usuário</DialogTitle>
-                  <DialogDescription>
-                    Preencha os dados abaixo para solicitar a criação de um novo usuário.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                  <UserRequestForm onSubmissionSuccess={handleNewRequestSuccess} onCancel={handleFormCancel} />
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -467,7 +535,7 @@ export default function GerenciarSolicitacoesUsuarioPage() {
               selectedIds={selectedIds}
               onSelectionChange={handleSelectionChange}
               onViewDetails={handleViewDetails}
-              onCancelRequest={handleCancelRequest} // Passa a nova função para a tabela
+              onCancelRequest={handleCancelRequest}
             />
           ) : requests.length > 0 ? (
             <div className="text-center py-12">

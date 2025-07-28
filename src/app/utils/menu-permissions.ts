@@ -1,4 +1,4 @@
-import type { MenuData, MenuItem, SubMenuItem, ProcessedMenuData } from "@/types/menu"
+import type { MenuData, MenuItem, SubMenuItem, ProcessedMenuData, RawMenuItem } from "@/types/menu"
 
 /**
  * Verifica se o usuário tem todas as permissões necessárias
@@ -18,34 +18,90 @@ export function getAvailableActions(userPermissions: string[], actions: string[]
 }
 
 /**
- * Processa os dados do menu baseado nas permissões do usuário
+ * Detecta o sistema atual baseado na URL
  */
-export function processMenuData(menuData: MenuData): ProcessedMenuData {
+export function getCurrentSystem(pathname: string): string | null {
+  // O padrão regex foi simplificado para focar na parte relevante da URL
+  const match = pathname.match(/^\/(ti|rh|comercial)/i)
+  if (match) {
+    const system = match[1].toUpperCase()
+    console.log("Sistema detectado:", system)
+    return system
+  }
+  console.log("Nenhum sistema detectado no pathname:", pathname)
+  return null
+}
+
+/**
+ * Constrói o path completo para um submenu baseado no sistema atual
+ */
+export function buildFullPath(currentSystem: string | null, subItemPath: string): string {
+  if (!currentSystem) {
+    // Se não há sistema, retorna o path original, que pode ser para uma página global
+    return subItemPath
+  }
+  // Garante que o path do submenu não tenha uma barra inicial para evitar duplicação
+  const cleanSubPath = subItemPath.startsWith("/") ? subItemPath.slice(1) : subItemPath
+  return `/${currentSystem.toLowerCase()}/${cleanSubPath}`
+}
+
+/**
+ * Verifica se um path corresponde ao pathname atual, considerando o sistema
+ */
+export function isPathActive(pathname: string, subItemPath: string, currentSystem: string | null): boolean {
+  const fullPath = buildFullPath(currentSystem, subItemPath)
+  return pathname === fullPath
+}
+
+/**
+ * Verifica se o submenu deve ser exibido no sistema atual
+ */
+export function isSubMenuVisibleInSystem(systemNames: string[] | undefined, currentSystem: string | null): boolean {
+  // Se systemNames não for fornecido ou estiver vazio, o item é visível em todos os sistemas.
+  if (!systemNames || systemNames.length === 0) {
+    return true
+  }
+  // Se não houver um sistema atual, não mostre itens de menu específicos do sistema.
+  if (!currentSystem) {
+    return false
+  }
+  // Verifica se o sistema atual está na lista de systemNames permitidos.
+  return systemNames.includes(currentSystem)
+}
+
+/**
+ * Processa os dados do menu baseado nas permissões do usuário e sistema atual
+ */
+export function processMenuData(menuData: MenuData, currentSystem: string | null): ProcessedMenuData {
   const { permissions: userPermissions, menus } = menuData
 
-  const processedMenus: MenuItem[] = menus.map((menu) => {
-    const processedSubmenu: SubMenuItem[] = menu.submenu.map((subItem) => ({
-      ...subItem,
-      hasAccess: hasRequiredPermissions(userPermissions, subItem.requiredPermissions),
-      availableActions: getAvailableActions(userPermissions, subItem.actions),
-    }))
+  const processedMenus: MenuItem[] = menus
+    .map((menu: RawMenuItem): MenuItem => {
+      const processedSubmenu: SubMenuItem[] = menu.submenu
+        .map((subItem) => {
+          const hasAccess = hasRequiredPermissions(userPermissions, subItem.requiredPermissions)
+          const isVisibleInCurrentSystem = isSubMenuVisibleInSystem(subItem.systemNames, currentSystem)
 
-    // Filtra apenas subitens que o usuário tem acesso
-    const accessibleSubmenu = processedSubmenu.filter((item) => item.hasAccess)
+          return {
+            ...subItem,
+            hasAccess,
+            availableActions: getAvailableActions(userPermissions, subItem.actions),
+            isVisibleInCurrentSystem,
+          }
+        })
+        .filter((subItem) => subItem.hasAccess && subItem.isVisibleInCurrentSystem)
 
-    return {
-      title: menu.title,
-      icon: menu.icon,
-      submenu: accessibleSubmenu,
-      hasAnyAccess: accessibleSubmenu.length > 0,
-    }
-  })
-
-  // Filtra apenas menus que têm pelo menos um subitem acessível
-  const accessibleMenus = processedMenus.filter((menu) => menu.hasAnyAccess)
+      return {
+        ...menu,
+        submenu: processedSubmenu,
+        hasAnyAccess: processedSubmenu.length > 0,
+      }
+    })
+    .filter((menu) => menu.hasAnyAccess)
 
   return {
     userPermissions,
-    menus: accessibleMenus,
+    menus: processedMenus,
+    currentSystem,
   }
 }

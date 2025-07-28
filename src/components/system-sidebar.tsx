@@ -1,10 +1,12 @@
 "use client"
-import { useState, useEffect } from "react"
+
+import { useState, useEffect, useRef } from "react"
 import { ChevronRight, Loader2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
 import { DynamicIcon } from "@/components/dynamic-icon"
 import { useMenuData } from "@/hooks/use-menu-data"
+import { buildFullPath, isPathActive } from "@/app/utils/menu-permissions"
 import type { MenuItem, SubMenuItem } from "@/types/menu"
 
 interface SystemSidebarProps {
@@ -18,30 +20,19 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
   const { menuData, isLoading, error } = useMenuData()
   const router = useRouter()
   const pathname = usePathname()
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Função para verificar se um submenu está ativo
-  // Agora, um submenu é considerado ativo APENAS se o pathname for uma correspondência exata
-  const isSubMenuActive = (path: string) => {
-    return pathname === path
+  const isSubMenuActive = (subItem: SubMenuItem) => {
+    if (!menuData) return false
+    return isPathActive(pathname, subItem.path, menuData.currentSystem)
   }
 
-  // Função para verificar se um menu principal tem algum submenu ativo
-  // Ou se o próprio path do menu principal é ativo (se ele tiver um path)
   const isMenuActive = (menuItem: MenuItem) => {
-    // Verifica se algum submenu está ativo
-    const hasActiveSubmenu = menuItem.submenu.some((subItem) => isSubMenuActive(subItem.path))
-
-    // Se o menu principal tem um path próprio e ele é ativo
-    // (Isso é útil se o menu principal também for um link, como "Dashboard" que tem sub-itens)
-    const isParentLinkActive = menuItem.path ? pathname === menuItem.path : false
-
-    return hasActiveSubmenu || isParentLinkActive
+    return menuItem.submenu.some(isSubMenuActive)
   }
 
-  // Função para obter o menu que deve estar expandido baseado na rota atual
   const getActiveMenuTitle = () => {
     if (!menuData) return null
-
     for (const menu of menuData.menus) {
       if (isMenuActive(menu)) {
         return menu.title
@@ -50,71 +41,65 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
     return null
   }
 
+  useEffect(() => {
+    if (!isCollapsed) {
+      const activeMenu = getActiveMenuTitle()
+      setExpandedMenu(activeMenu)
+    }
+  }, [isCollapsed, menuData, pathname])
+
   const handleMenuClick = (menuTitle: string) => {
     if (isCollapsed) {
-      // Se está colapsado, limpa o hover e expande a sidebar
-      setHoveredMenu(null)
       onToggle()
-      setExpandedMenu(menuTitle)
     } else {
-      // Se já está expandido, apenas toggle do menu
-      if (expandedMenu === menuTitle) {
-        setExpandedMenu(null)
-      } else {
-        setExpandedMenu(menuTitle)
-      }
+      setExpandedMenu(expandedMenu === menuTitle ? null : menuTitle)
     }
   }
 
-  const handleSubMenuClick = (path: string) => {
+  const handleSubMenuClick = (subItem: SubMenuItem) => {
+    if (!menuData) return
+    const path = buildFullPath(menuData.currentSystem, subItem.path)
     router.push(path)
-    setExpandedMenu(null)
-    setHoveredMenu(null)
+    if (window.innerWidth < 1024) {
+      onToggle()
+    }
   }
 
-  const handleMenuHoverEnter = (menuTitle: string) => {
-    // Só permite hover quando está colapsado
+  const clearHoverTimeout = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+  }
+
+  const handleMouseEnter = (menuTitle: string) => {
     if (isCollapsed) {
+      clearHoverTimeout()
       setHoveredMenu(menuTitle)
     }
   }
 
-  const handleMenuHoverLeave = () => {
-    // Só limpa hover quando está colapsado
+  const handleMouseLeave = () => {
     if (isCollapsed) {
-      setHoveredMenu(null)
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredMenu(null)
+      }, 150)
     }
   }
 
-  // Efeito para limpar estados quando a sidebar muda de estado e auto-expandir menu ativo
   useEffect(() => {
     if (isCollapsed) {
-      // Quando colapsa, limpa o menu expandido
       setExpandedMenu(null)
     } else {
-      // Quando expande, limpa o menu hover e auto-expande o menu ativo
-      setHoveredMenu(null)
-      const activeMenuTitle = getActiveMenuTitle()
-      if (activeMenuTitle && !expandedMenu) {
-        setExpandedMenu(activeMenuTitle)
-      }
-    }
-  }, [isCollapsed, menuData, pathname]) // Adicionado pathname como dependência para re-avaliar ao mudar de rota
-
-  // Efeito adicional para garantir limpeza do hover quando não está colapsado
-  useEffect(() => {
-    if (!isCollapsed && hoveredMenu) {
       setHoveredMenu(null)
     }
-  }, [isCollapsed, hoveredMenu])
+  }, [isCollapsed])
 
-  // Renderiza loading
   if (isLoading) {
     return (
       <div
         className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-background border-r border-border z-20 transition-all duration-300 ease-in-out",
-          "flex flex-col items-center justify-center",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-background border-r border-border z-40 transition-all duration-300 ease-in-out flex flex-col items-center justify-center",
           isCollapsed ? "w-16" : "w-64",
         )}
       >
@@ -124,34 +109,40 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
     )
   }
 
-  // Renderiza erro
   if (error) {
     return (
       <div
         className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-background border-r border-border z-20 transition-all duration-300 ease-in-out",
-          "flex flex-col items-center justify-center p-4",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-background border-r border-border z-40 transition-all duration-300 ease-in-out flex flex-col items-center justify-center p-4",
           isCollapsed ? "w-16" : "w-64",
         )}
       >
         <AlertCircle className="h-6 w-6 text-destructive" />
-        {!isCollapsed && <p className="mt-2 text-sm text-muted-foreground text-center">Erro ao carregar menu</p>}
+        {!isCollapsed && (
+          <div className="mt-2 text-sm text-muted-foreground text-center">
+            <p>Erro ao carregar menu</p>
+            <p className="text-xs mt-1">{error}</p>
+          </div>
+        )}
       </div>
     )
   }
 
-  // Renderiza menu vazio se não há dados
   if (!menuData || menuData.menus.length === 0) {
     return (
       <div
         className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-background border-r border-border z-20 transition-all duration-300 ease-in-out",
-          "flex flex-col items-center justify-center p-4",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-background border-r border-border z-40 transition-all duration-300 ease-in-out flex flex-col items-center justify-center p-4",
           isCollapsed ? "w-16" : "w-64",
         )}
       >
         <AlertCircle className="h-6 w-6 text-muted-foreground" />
-        {!isCollapsed && <p className="mt-2 text-sm text-muted-foreground text-center">Nenhum menu disponível</p>}
+        {!isCollapsed && (
+          <div className="mt-2 text-sm text-muted-foreground text-center">
+            <p>Nenhum menu disponível</p>
+            {menuData?.currentSystem && <p className="text-xs mt-1">Sistema: {menuData.currentSystem}</p>}
+          </div>
+        )}
       </div>
     )
   }
@@ -159,178 +150,146 @@ export function SystemSidebar({ isCollapsed, onToggle }: SystemSidebarProps) {
   return (
     <>
       {/* Overlay para fechar o menu em dispositivos móveis */}
-      {!isCollapsed && <div className="fixed inset-0 bg-black/20 z-40 lg:hidden" onClick={onToggle} />}
+      {!isCollapsed && <div className="fixed inset-0 bg-black/20 z-30 lg:hidden" onClick={onToggle} />}
 
-      {/* Sidebar */}
-      <div
+      {/* Sidebar Principal */}
+      <aside
         className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-background border-r border-border z-20 transition-all duration-300 ease-in-out",
-          "flex flex-col",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-background border-r border-border z-40 transition-all duration-300 ease-in-out flex flex-col",
           isCollapsed ? "w-16" : "w-64",
         )}
       >
         {/* Menu Items */}
-        <nav className="flex-1 py-4">
+        <nav className="flex-1 py-4 overflow-y-auto">
           <ul className="space-y-2 px-2">
-            {menuData.menus.map((item: MenuItem) => (
-              <li key={item.title}>
-                {/* Container que engloba ícone + menu flutuante + ponte invisível */}
-                <div
-                  className="relative"
-                  onMouseEnter={() => handleMenuHoverEnter(item.title)}
-                  onMouseLeave={handleMenuHoverLeave}
+            {menuData.menus.map((item) => (
+              <li key={item.title} onMouseEnter={() => handleMouseEnter(item.title)} onMouseLeave={handleMouseLeave}>
+                <button
+                  onClick={() => handleMenuClick(item.title)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200",
+                    "hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                    isMenuActive(item) && !isCollapsed && "bg-accent text-accent-foreground",
+                    isMenuActive(item) && isCollapsed && "bg-primary text-primary-foreground",
+                  )}
                 >
-                  {/* Menu Principal */}
-                  <button
-                    onClick={() => handleMenuClick(item.title)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                      "hover:bg-accent hover:text-accent-foreground",
-                      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                      "group relative",
-                      // Estilos para menu expandido
-                      expandedMenu === item.title && !isCollapsed && "bg-accent text-accent-foreground",
-                      // Estilos para menu ativo
-                      isMenuActive(item) && "bg-primary/10 text-primary border-l-2 border-primary",
-                      isMenuActive(item) && isCollapsed && "bg-primary text-primary-foreground",
-                    )}
-                  >
-                    <DynamicIcon name={item.icon} className="h-5 w-5 flex-shrink-0" />
-
-                    {/* Nome do menu - visível quando expandido */}
-                    {!isCollapsed && <span className="font-medium transition-all duration-200">{item.title}</span>}
-
-                    {/* Seta para indicar submenu - apenas quando expandido */}
-                    {item.submenu.length > 0 && !isCollapsed && (
-                      <ChevronRight
-                        className={cn(
-                          "h-4 w-4 ml-auto transition-transform duration-200",
-                          expandedMenu === item.title && "rotate-90",
-                        )}
-                      />
-                    )}
-                  </button>
-
-                  {/* Ponte invisível para conectar ícone ao menu flutuante */}
-                  {isCollapsed && hoveredMenu === item.title && item.submenu.length > 0 && (
-                    <div className="absolute left-full top-0 w-4 h-full z-40" />
+                  <DynamicIcon name={item.icon} className="h-5 w-5 flex-shrink-0" />
+                  {!isCollapsed && <span className="font-medium flex-1 text-left">{item.title}</span>}
+                  {item.submenu.length > 0 && !isCollapsed && (
+                    <ChevronRight
+                      className={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        expandedMenu === item.title && "rotate-90",
+                      )}
+                    />
                   )}
+                </button>
 
-                  {/* Menu Flutuante (Hover) - apenas quando colapsado E com hover ativo */}
-                  {isCollapsed && hoveredMenu === item.title && item.submenu.length > 0 && (
-                    <div className="absolute left-full top-0 ml-4 z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-left-2 duration-200">
-                      <div
-                        className="bg-popover text-popover-foreground rounded-xl shadow-2xl border border-border/50 backdrop-blur-sm"
-                        style={{
-                          height: "calc(90vh - 8rem)", // 90% da altura da viewport menos header e padding
-                          minWidth: "280px",
-                          maxWidth: "320px",
-                        }}
-                      >
-                        {/* Header do menu flutuante */}
-                        <div className="px-4 py-3 border-b border-border/50 bg-muted/30 rounded-t-xl">
-                          <div className="flex items-center gap-3">
-                            <DynamicIcon name={item.icon} className="h-5 w-5 text-primary" />
-                            <h3 className="font-semibold text-foreground">{item.title}</h3>
-                          </div>
-                        </div>
-
-                        {/* Conteúdo scrollável */}
-                        <div className="flex-1 overflow-y-auto p-3">
-                          <ul className="space-y-1">
-                            {item.submenu.map((subItem: SubMenuItem) => (
-                              <li key={subItem.label}>
-                                <button
-                                  onClick={() => handleSubMenuClick(subItem.path)}
-                                  className={cn(
-                                    "w-full text-left px-4 py-3 rounded-lg text-sm transition-all duration-200",
-                                    "hover:bg-accent hover:text-accent-foreground",
-                                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group",
-                                    // Estilo para submenu ativo
-                                    isSubMenuActive(subItem.path) && "bg-primary text-primary-foreground font-medium",
-                                  )}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <DynamicIcon name={subItem.icon} className="h-4 w-4 flex-shrink-0" />
-                                    <div className="flex-1">
-                                      <span className="font-medium">{subItem.label}</span>
-                                      {subItem.availableActions.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                          {subItem.availableActions
-                                            .filter((action) => action.hasPermission)
-                                            .map((action) => (
-                                              <span
-                                                key={action.action}
-                                                className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded"
-                                              >
-                                                {action.action.split(":")[1]}
-                                              </span>
-                                            ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                                  </div>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Footer do menu flutuante */}
-                        <div className="px-4 py-3 border-t border-border/50 bg-muted/20 rounded-b-xl">
-                          <p className="text-xs text-muted-foreground text-center">Clique para fixar o menu</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Submenu Fixo - apenas quando expandido */}
-                  {!isCollapsed && item.submenu.length > 0 && expandedMenu === item.title && (
-                    <ul className="mt-1 ml-4 space-y-1 border-l border-border pl-4 animate-in slide-in-from-top-2 duration-200">
-                      {item.submenu.map((subItem: SubMenuItem) => (
-                        <li key={subItem.label}>
-                          <button
-                            onClick={() => handleSubMenuClick(subItem.path)}
-                            className={cn(
-                              "w-full text-left px-3 py-2 rounded-md text-sm transition-all duration-200",
-                              "hover:bg-accent hover:text-accent-foreground",
-                              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                              // Estilo para submenu ativo
-                              isSubMenuActive(subItem.path) && "bg-primary text-primary-foreground font-medium",
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <DynamicIcon name={subItem.icon} className="h-4 w-4 flex-shrink-0" />
-                              <span>{subItem.label}</span>
-                              {/* Indicador visual para item ativo */}
-                              {isSubMenuActive(subItem.path) && (
-                                <div className="ml-auto w-2 h-2 bg-primary-foreground rounded-full" />
-                              )}
-                            </div>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                {/* Submenu expandido quando sidebar não está colapsada */}
+                {!isCollapsed && expandedMenu === item.title && (
+                  <ul className="mt-1 ml-4 pl-4 border-l border-border space-y-1">
+                    {item.submenu.map((subItem) => (
+                      <li key={subItem.label}>
+                        <button
+                          onClick={() => handleSubMenuClick(subItem)}
+                          className={cn(
+                            "w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                            "hover:bg-accent hover:text-accent-foreground",
+                            isSubMenuActive(subItem) && "bg-accent text-accent-foreground font-semibold",
+                          )}
+                        >
+                          <DynamicIcon name={subItem.icon} className="h-4 w-4" />
+                          <span>{subItem.label}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-border p-2">
-          <div
-            className={cn(
-              "text-xs text-muted-foreground text-center transition-opacity duration-200",
-              !isCollapsed ? "opacity-100" : "opacity-0",
-            )}
-          >
-            {!isCollapsed && "v1.0.0"}
+        <div className="border-t border-border p-2 mt-auto">
+          {!isCollapsed && (
+            <div className="text-xs text-muted-foreground text-center">
+              <p>v1.0.0</p>
+              {menuData?.currentSystem && <p className="font-semibold text-primary">{menuData.currentSystem}</p>}
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Menu Hover - Idêntico ao menu expandido */}
+      {isCollapsed && hoveredMenu && (
+        <div
+          className="fixed left-16 w-64 z-50 top-16 h-[calc(100vh-4rem)]"
+          onMouseEnter={clearHoverTimeout}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div className="bg-background border-r border-border shadow-xl h-full flex flex-col animate-in slide-in-from-left-2 duration-150">
+            {/* Menu Items - Idêntico ao menu principal */}
+            <nav className="flex-1 py-4 overflow-y-auto">
+              <ul className="space-y-2 px-2">
+                {menuData.menus.map((item) => (
+                  <li key={item.title}>
+                    <button
+                      onClick={() => handleMenuClick(item.title)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200",
+                        "hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                        isMenuActive(item) && "bg-accent text-accent-foreground",
+                        hoveredMenu === item.title && "bg-accent text-accent-foreground",
+                      )}
+                    >
+                      <DynamicIcon name={item.icon} className="h-5 w-5 flex-shrink-0" />
+                      <span className="font-medium flex-1 text-left">{item.title}</span>
+                      {item.submenu.length > 0 && (
+                        <ChevronRight
+                          className={cn(
+                            "h-4 w-4 transition-transform duration-200",
+                            hoveredMenu === item.title && "rotate-90",
+                          )}
+                        />
+                      )}
+                    </button>
+
+                    {/* Submenu sempre expandido para o item em hover */}
+                    {hoveredMenu === item.title && item.submenu.length > 0 && (
+                      <ul className="mt-1 ml-4 pl-4 border-l border-border space-y-1">
+                        {item.submenu.map((subItem) => (
+                          <li key={subItem.label}>
+                            <button
+                              onClick={() => handleSubMenuClick(subItem)}
+                              className={cn(
+                                "w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                                "hover:bg-accent hover:text-accent-foreground",
+                                isSubMenuActive(subItem) && "bg-accent text-accent-foreground font-semibold",
+                              )}
+                            >
+                              <DynamicIcon name={subItem.icon} className="h-4 w-4" />
+                              <span>{subItem.label}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            {/* Footer - Idêntico ao footer principal */}
+            <div className="border-t border-border p-2 mt-auto">
+              <div className="text-xs text-muted-foreground text-center">
+                <p>v1.0.0</p>
+                {menuData?.currentSystem && <p className="font-semibold text-primary">{menuData.currentSystem}</p>}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   )
 }

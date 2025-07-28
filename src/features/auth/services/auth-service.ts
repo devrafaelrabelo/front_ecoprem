@@ -288,7 +288,7 @@ export const authService = {
       console.log("🔄 Verificando usuário atual com backend (/me)...")
 
       // Endpoint /me para obter dados do usuário
-      const response = await fetchWithValidation(`${ApiEndpoints.backend.myProfile}`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.userMe}`, {
         // Alterado para /api/users/me
         method: "GET",
         headers: {

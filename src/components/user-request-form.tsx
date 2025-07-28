@@ -221,7 +221,7 @@ export function UserRequestForm({ onSubmissionSuccess, onCancel }: UserRequestFo
     }
 
     try {
-      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequest}`, {
+      const response = await fetchWithValidation(`${ApiEndpoints.backend.userRequestsCreate}`, {
         method: "POST",
         credentials: "include",
         headers: {
