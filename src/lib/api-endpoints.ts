@@ -4,7 +4,6 @@ import { API_BASE, SELENIUM_BASE, USERHUB_BASE, MONITORHEALTH } from "@/config"
 export const ApiEndpoints = {
   // 🌐 Backend (Spring Boot)
   backend: {
-
     // RESOURCES
     resourcesList: `${API_BASE}/resources`,
     resourcesId: `${API_BASE}/resources/`,
@@ -80,7 +79,6 @@ export const ApiEndpoints = {
     userRequestsIdDelete: `${API_BASE}/user/request/`,
     userRequestsIdDeleteBatch: `${API_BASE}/user/request/batch`,
 
-
     // PROFILE
     userProfile: `${API_BASE}/user/profile`,
     userMe: `${API_BASE}/user/me`,
@@ -114,22 +112,52 @@ export const ApiEndpoints = {
 
     //  endpoints   
 
+    adminUsersCreate: `${API_BASE}/admin/users/create`,
+    adminUsersRequest: `${API_BASE}/admin/users/request`,
+    adminUsersRequestId: `${API_BASE}/admin/users/request/`,
+    adminUsersRequestBatch: `${API_BASE}/admin/users/request/batch`,
+    adminUsersDetails: `${API_BASE}/admin/users`,
 
-
-    adminUserRequest: `${API_BASE}/admin/users/request`,
-    adminUserRequestId: `${API_BASE}/admin/users/request/`,
-    adminUserRequestBatch: `${API_BASE}/admin/users/request/batch`,
-    adminUserDetails: `${API_BASE}/admin/users`,
     adminPermissions: `${API_BASE}/admin/permissions`,
 
+    // DEPARTMENT
+    adminDepartmentList: `${API_BASE}/admin/departments`,
+    adminDepartmentId: `${API_BASE}/admin/departments/`,
+    adminDepartmentIdAlter: `${API_BASE}/admin/departments/`,
+    adminDepartmentCreate: `${API_BASE}/admin/departments`,
+    adminDepartmentIdDelete: `${API_BASE}/admin/departments/`,
+    adminDepartmentIdAssign: `${API_BASE}/admin/departments/assing-manager`,
+
+    // FUNCTIONS
+    adminFunctionList: `${API_BASE}/admin/functions`,
+    adminFunctionId: `${API_BASE}/admin/functions/`,
+    adminFunctionIdAlter: `${API_BASE}/admin/functions/`,
+    adminFunctionCreate: `${API_BASE}/admin/functions`,
+    adminFunctionIdDelete: `${API_BASE}/admin/functions/`,  
+    adminFunctionIdAssign: `${API_BASE}/admin/functions/assign`,  
+
+    // COMPANY
+    adminCompanyList: `${API_BASE}/admin/companies`,
+    adminCompanyId: `${API_BASE}/admin/companies/`,
+    adminCompanyIdAlter: `${API_BASE}/admin/companies/`,
+    adminCompanyCreate: `${API_BASE}/admin/companies`,    
+    adminCompanyIdDelete: `${API_BASE}/admin/companies/`,
+    adminCompanyIdAssign: `${API_BASE}/admin/companies/assign`,
+
+    // POSITIONS
+    adminPositionList: `${API_BASE}/admin/positions`,
+    adminPositionId: `${API_BASE}/admin/positions/`,
+    adminPositionIdAlter: `${API_BASE}/admin/positions/`,
+    adminPositionCreate: `${API_BASE}/admin/positions`,    
+    adminPositionIdDelete: `${API_BASE}/admin/positions/`,
+    adminPositionIdAssign: `${API_BASE}/admin/positions/assign`,
 
     // ADMIN
     // ADMIN USERS
-    adminUsers: `${API_BASE}/admin/users`,
-    adminUserId: `${API_BASE}/admin/users/`,
-    adminUserBatch: `${API_BASE}/admin/users/batch`,
-    adminUserRoles: `${API_BASE}/admin/users/roles`,
-    adminUserRoleId: `${API_BASE}/admin/users/roles/`,
+    adminUsers: `${API_BASE}/admin/users`,    
+    adminUsersBatch: `${API_BASE}/admin/users/batch`,
+    adminUsersRoles: `${API_BASE}/admin/users/roles`,
+    adminUsersRoleId: `${API_BASE}/admin/users/roles/`,
 
     // ADMIN ROLES
     adminRoles: `${API_BASE}/admin/roles`,
@@ -148,7 +176,6 @@ export const ApiEndpoints = {
     // ADMIN USERS 
     adminUsersList: `${API_BASE}/admin/users`,
     adminUsersId: `${API_BASE}/admin/users/`,
-    adminUsersCreate: `${API_BASE}/admin/users`,
     adminUsersIdAlter: `${API_BASE}/admin/users/`,
     adminUsersIdDelete: `${API_BASE}/admin/users/`,
 

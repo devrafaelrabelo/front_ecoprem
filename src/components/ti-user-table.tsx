@@ -24,19 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Trash2,
-  Shield,
-  Crown,
-  Settings,
-  User,
-  CheckCircle,
-  XCircle,
-  Clock,
-} from "lucide-react"
+import { MoreHorizontal, Eye, Edit, Trash2, Shield, Crown, Settings, User, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
 
 export interface UserInterface {
   id: string
@@ -53,8 +41,10 @@ export interface UserInterface {
 
 interface TiUserTableProps {
   users: UserInterface[]
-  selectedIds: Set<string>
-  onSelectionChange: (selectedIds: Set<string>) => void
+  loading?: boolean
+  onRefresh?: () => void
+  selectedIds?: Set<string>
+  onSelectionChange?: (selectedIds: Set<string>) => void
   onViewUser?: (user: UserInterface) => void
   onEditUser?: (userId: string) => void
   onDeleteUser?: (userId: string) => void
@@ -139,7 +129,9 @@ const formatDate = (dateString?: string | null) => {
 
 export function TiUserTable({
   users,
-  selectedIds,
+  loading = false,
+  onRefresh,
+  selectedIds = new Set(),
   onSelectionChange,
   onViewUser,
   onEditUser,
@@ -149,21 +141,25 @@ export function TiUserTable({
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      onSelectionChange(new Set(users.map((user) => user.id)))
-    } else {
-      onSelectionChange(new Set())
+    if (onSelectionChange) {
+      if (checked) {
+        onSelectionChange(new Set(users.map((user) => user.id)))
+      } else {
+        onSelectionChange(new Set())
+      }
     }
   }
 
   const handleSelectUser = (userId: string, checked: boolean) => {
-    const newSelectedIds = new Set(selectedIds)
-    if (checked) {
-      newSelectedIds.add(userId)
-    } else {
-      newSelectedIds.delete(userId)
+    if (onSelectionChange) {
+      const newSelectedIds = new Set(selectedIds)
+      if (checked) {
+        newSelectedIds.add(userId)
+      } else {
+        newSelectedIds.delete(userId)
+      }
+      onSelectionChange(newSelectedIds)
     }
-    onSelectionChange(newSelectedIds)
   }
 
   const handleDeleteClick = (userId: string) => {
@@ -182,20 +178,36 @@ export function TiUserTable({
   const isAllSelected = users.length > 0 && selectedIds.size === users.length
   const isIndeterminate = selectedIds.size > 0 && selectedIds.size < users.length
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <div className="space-y-2">
+            <p className="text-lg font-medium">Carregando usuários...</p>
+            <p className="text-sm text-muted-foreground">Por favor, aguarde</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Selecionar todos"
-                  className={isIndeterminate ? "data-[state=checked]:bg-primary" : ""}
-                />
-              </TableHead>
+              {onSelectionChange && (
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Selecionar todos"
+                    className={isIndeterminate ? "data-[state=checked]:bg-primary" : ""}
+                  />
+                </TableHead>
+              )}
               <TableHead>Usuário</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Departamento</TableHead>
@@ -208,20 +220,22 @@ export function TiUserTable({
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={onSelectionChange ? 8 : 7} className="text-center py-8 text-muted-foreground">
                   Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
             ) : (
               users.map((user) => (
                 <TableRow key={user.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.has(user.id)}
-                      onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
-                      aria-label={`Selecionar ${user.fullName || user.username}`}
-                    />
-                  </TableCell>
+                  {onSelectionChange && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(user.id)}
+                        onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
+                        aria-label={`Selecionar ${user.fullName || user.username}`}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
