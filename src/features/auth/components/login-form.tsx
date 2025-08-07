@@ -52,15 +52,17 @@ export function LoginForm() {
   }
 
   const validateEmailOrUser = (input: string): boolean => {
-    // Se contém @, valida como email com regex específico
+    // Se contém @, valida como e-mail com base no domínio permitido
     if (input.includes("@")) {
-      const domain = config.app.allowedEmailDomain
-      const emailRegex = new RegExp(`^[a-zA-Z0-9._%+-]+@${domain}\\.com$`)
-      return emailRegex.test(input)
+      const domain = config.app.allowedEmailDomain;
+      const tld = domain === "bemprotege" ? "com.br" : "com";
+      const emailRegex = new RegExp(`^[a-zA-Z0-9._%+-]+@${domain}\\.${tld}$`);
+      return emailRegex.test(input);
     }
-    // Se não contém @, considera como usuário válido
-    return true
-  }
+
+    // Se não contém @, considera como nome de usuário válido
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

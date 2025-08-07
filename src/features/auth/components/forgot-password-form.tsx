@@ -19,9 +19,10 @@ export function ForgotPasswordForm() {
   const router = useRouter()
   const { toast } = useToast()
 
-  // Regex para validar email do domínio example.com 
-  const domain = config.app.allowedEmailDomain
-  const emailRegex = new RegExp(`^[a-zA-Z0-9._%+-]+@${domain}\\.com$`)
+  const domain = config.app.allowedEmailDomain;
+  const tld = domain === "bemprotege" ? "com.br" : "com";
+
+  const emailRegex = new RegExp(`^[a-zA-Z0-9._%+-]+@${domain}\\.${tld}$`);
       
 
   const handleSubmit = async (e: React.FormEvent) => {

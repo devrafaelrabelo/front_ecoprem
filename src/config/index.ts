@@ -3,6 +3,7 @@ type ApiConfig = {
   seleniumUrl: string
   userHubUrl: string
   wppUrl: string
+  monitorhealth: string
   timeout: number
 }
 
@@ -29,6 +30,7 @@ export const config = {
     seleniumUrl: process.env.NEXT_PUBLIC_API_SELENIUM_URL || "/selenium",
     userHubUrl: process.env.NEXT_PUBLIC_API_USERHUB_URL || "/userhub",
     wppUrl: process.env.NEXT_PUBLIC_WPP_API_URL || "/wpp",
+    monitorhealth: process.env.NEXT_PUBLIC_WPP_MONITORHEALTH || "/monitor",
     timeout: 10000,
   } as ApiConfig,
 
@@ -46,13 +48,14 @@ export const config = {
     locale: process.env.NEXT_PUBLIC_DEFAULT_LOCALE || "pt-BR",
     theme: process.env.NEXT_PUBLIC_THEME || "dark",
     revalidateInterval: Number(process.env.NEXT_PUBLIC_REVALIDATE_INTERVAL || 30000),
-    allowedEmailDomain: process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN || "empresa",
+    allowedEmailDomain: process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN || "bemprotege",
   } as AppConfig,
 }
 
 // API endpoints
 export const API_BASE = config.api.baseUrl
 export const SELENIUM_BASE = config.api.seleniumUrl
+export const MONITORHEALTH = config.api.monitorhealth
 export const USERHUB_BASE = config.api.userHubUrl
 export const WPP_BASE = config.api.wppUrl
 

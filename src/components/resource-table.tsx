@@ -1,17 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Eye, Edit, Trash2, Package } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,45 +15,134 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { MoreHorizontal, Eye, Edit, Trash2, Package } from "lucide-react"
+import { Pagination } from "@/components/common/pagination"
 import type { Resource } from "@/types/resource"
 
 interface ResourceTableProps {
   resources: Resource[]
-  onEdit: (resource: Resource) => void
+  pagination: {
+    totalElements: number
+    totalPages: number
+    currentPage: number
+    size: number
+    first: boolean
+    last: boolean
+  }
+  isLoading: boolean
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
   onView: (resource: Resource) => void
-  onDelete: (resourceId: string) => Promise<void>
-  onRefresh: () => void
+  onEdit: (resource: Resource) => void
+  onDelete: (id: string) => Promise<void>
 }
 
-export function ResourceTable({ resources, onEdit, onView, onDelete, onRefresh }: ResourceTableProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+export function ResourceTable({
+  resources,
+  pagination,
+  isLoading,
+  onPageChange,
+  onPageSizeChange,
+  onView,
+  onEdit,
+  onDelete,
+}: ResourceTableProps) {
+  const [deleteResource, setDeleteResource] = useState<Resource | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleDelete = async (resourceId: string) => {
-    setIsDeleting(true)
+  const handleDelete = async () => {
+    if (!deleteResource) return
+
     try {
-      await onDelete(resourceId)
-      setDeletingId(null)
+      setIsDeleting(true)
+      await onDelete(deleteResource.id)
     } catch (error) {
-      // Error is handled in parent component
+      // Error is handled in the hook
     } finally {
       setIsDeleting(false)
+      setDeleteResource(null)
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+  const getStatusBadge = (status: string | null) => {
+    if (!status) return <Badge variant="secondary">Sem Status</Badge>
+
+    const statusLower = status.toLowerCase()
+    if (statusLower.includes("ativo") || statusLower.includes("disponível")) {
+      return (
+        <Badge variant="default" className="bg-green-500">
+          {status}
+        </Badge>
+      )
+    }
+    if (statusLower.includes("manutenção") || statusLower.includes("reparo")) {
+      return <Badge variant="destructive">{status}</Badge>
+    }
+    if (statusLower.includes("inativo") || statusLower.includes("descartado")) {
+      return <Badge variant="secondary">{status}</Badge>
+    }
+    return <Badge variant="outline">{status}</Badge>
   }
 
-  const truncateText = (text: string, maxLength = 50) => {
-    if (text.length <= maxLength) return text
-    return text.substring(0, maxLength) + "..."
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Tag do Ativo</TableHead>
+                <TableHead>Número de Série</TableHead>
+                <TableHead>Marca</TableHead>
+                <TableHead>Modelo</TableHead>
+                <TableHead>Localização</TableHead>
+                <TableHead>Usuário Atual</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="w-[70px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-muted animate-pulse rounded" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    )
   }
 
   if (resources.length === 0) {
@@ -69,25 +151,25 @@ export function ResourceTable({ resources, onEdit, onView, onDelete, onRefresh }
         <Package className="h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">Nenhum recurso encontrado</h3>
         <p className="text-muted-foreground mb-4">Não há recursos que correspondam aos filtros aplicados.</p>
-        <Button onClick={onRefresh} variant="outline">
-          Atualizar lista
-        </Button>
       </div>
     )
   }
 
   return (
-    <>
+    <div className="space-y-4">
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Localização</TableHead>
+              <TableHead>Tag do Ativo</TableHead>
               <TableHead>Número de Série</TableHead>
+              <TableHead>Marca</TableHead>
+              <TableHead>Modelo</TableHead>
+              <TableHead>Localização</TableHead>
+              <TableHead>Usuário Atual</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Criado em</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead className="w-[70px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -95,17 +177,14 @@ export function ResourceTable({ resources, onEdit, onView, onDelete, onRefresh }
             {resources.map((resource) => (
               <TableRow key={resource.id}>
                 <TableCell className="font-medium">{resource.name}</TableCell>
-                <TableCell>{resource.resourceType?.name || "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{resource.location || "—"}</TableCell>
-                <TableCell className="text-muted-foreground font-mono text-xs">
-                  {resource.serialNumber || "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={resource.active ? "default" : "secondary"}>
-                    {resource.active ? "Ativo" : "Inativo"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{formatDate(resource.createdAt)}</TableCell>
+                <TableCell>{resource.assetTag || "-"}</TableCell>
+                <TableCell className="font-mono text-sm">{resource.serialNumber || "-"}</TableCell>
+                <TableCell>{resource.brand || "-"}</TableCell>
+                <TableCell>{resource.model || "-"}</TableCell>
+                <TableCell>{resource.location || "-"}</TableCell>
+                <TableCell>{resource.currentUser || "-"}</TableCell>
+                <TableCell>{getStatusBadge(resource.status)}</TableCell>
+                <TableCell>{resource.type || "-"}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -123,8 +202,7 @@ export function ResourceTable({ resources, onEdit, onView, onDelete, onRefresh }
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setDeletingId(resource.id)} className="text-destructive">
+                      <DropdownMenuItem onClick={() => setDeleteResource(resource)} className="text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" />
                         Excluir
                       </DropdownMenuItem>
@@ -137,19 +215,30 @@ export function ResourceTable({ resources, onEdit, onView, onDelete, onRefresh }
         </Table>
       </div>
 
-      {/* Dialog de Confirmação de Exclusão */}
-      <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
+      {/* Paginação */}
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalElements={pagination.totalElements}
+        pageSize={pagination.size}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        isLoading={isLoading}
+      />
+
+      {/* Dialog de confirmação de exclusão */}
+      <AlertDialog open={!!deleteResource} onOpenChange={() => setDeleteResource(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este recurso? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o recurso "{deleteResource?.name}"? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deletingId && handleDelete(deletingId)}
+              onClick={handleDelete}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -158,6 +247,6 @@ export function ResourceTable({ resources, onEdit, onView, onDelete, onRefresh }
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }

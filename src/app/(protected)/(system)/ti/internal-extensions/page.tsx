@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { InternalExtensionFiltersComponent } from "@/components/internal-extension-filters"
 import { InternalExtensionTable } from "@/components/internal-extension-table"
 import { CreateInternalExtensionModal } from "@/components/create-internal-extension-modal"
+import { Pagination } from "@/components/common/pagination"
 import type {
   InternalExtension,
   CreateInternalExtensionData,
@@ -18,8 +19,18 @@ import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 
 export default function InternalExtensionsPage() {
   const [extensions, setExtensions] = useState<InternalExtension[]>([])
-  const [filteredExtensions, setFilteredExtensions] = useState<InternalExtension[]>([])
-  const [filters, setFilters] = useState<FilterType>({})
+  const [filters, setFilters] = useState<FilterType & { page?: number; size?: number }>({
+    page: 0,
+    size: 20,
+  })
+  const [pagination, setPagination] = useState({
+    totalElements: 0,
+    totalPages: 0,
+    currentPage: 0,
+    size: 20,
+    first: true,
+    last: true,
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -31,16 +42,47 @@ export default function InternalExtensionsPage() {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetchWithValidation(ApiEndpoints.backend.resourceInternalExtensionList)
+      const searchParams = new URLSearchParams()
+      if (filters.search) searchParams.append("search", filters.search)
+      if (filters.extension) searchParams.append("extension", filters.extension)
+      if (filters.application) searchParams.append("application", filters.application)
+      if (filters.page !== undefined) searchParams.append("page", filters.page.toString())
+      if (filters.size !== undefined) searchParams.append("size", filters.size.toString())
+
+      const url = `${ApiEndpoints.backend.resourceInternalExtensionList}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
+
+      const response = await fetchWithValidation(url)
 
       if (!response.ok) {
         throw new Error("Erro ao carregar ramais internos")
       }
 
       const data = await response.json()
-      const extensionsList = Array.isArray(data) ? data : data.data || []
 
-      setExtensions(extensionsList)
+      // Verifica se a resposta tem a estrutura do Spring Boot
+      if (data.content && Array.isArray(data.content)) {
+        setExtensions(data.content)
+        setPagination({
+          totalElements: data.totalElements,
+          totalPages: data.totalPages,
+          currentPage: data.number,
+          size: data.size,
+          first: data.first,
+          last: data.last,
+        })
+      } else {
+        // Fallback para estrutura simples
+        const extensionsList = Array.isArray(data) ? data : data.data || []
+        setExtensions(extensionsList)
+        setPagination({
+          totalElements: extensionsList.length,
+          totalPages: 1,
+          currentPage: 0,
+          size: extensionsList.length,
+          first: true,
+          last: true,
+        })
+      }
     } catch (error) {
       console.error("Erro ao buscar ramais internos:", error)
       setError("Erro ao carregar ramais internos. Tente novamente.")
@@ -53,7 +95,7 @@ export default function InternalExtensionsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [toast])
+  }, [filters, toast])
 
   // Criar ramal interno
   const createInternalExtension = async (data: CreateInternalExtensionData) => {
@@ -150,33 +192,28 @@ export default function InternalExtensionsPage() {
     }
   }
 
-  // Aplicar filtros
-  useEffect(() => {
-    if (!Array.isArray(extensions)) {
-      setFilteredExtensions([])
-      return
-    }
+  const updateFilters = useCallback((newFilters: FilterType) => {
+    setFilters((prev) => ({
+      ...prev,
+      ...newFilters,
+      page: 0, // Reset page when filters change
+    }))
+  }, [])
 
-    let filtered = extensions
+  const changePage = useCallback((page: number) => {
+    setFilters((prev) => ({ ...prev, page }))
+  }, [])
 
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
-      filtered = filtered.filter(
-        (ext) =>
-          ext.extension.toLowerCase().includes(searchLower) || ext.application.toLowerCase().includes(searchLower),
-      )
-    }
+  const changePageSize = useCallback((size: number) => {
+    setFilters((prev) => ({ ...prev, size, page: 0 }))
+  }, [])
 
-    if (filters.extension) {
-      filtered = filtered.filter((ext) => ext.extension.includes(filters.extension!))
-    }
-
-    if (filters.application) {
-      filtered = filtered.filter((ext) => ext.application === filters.application)
-    }
-
-    setFilteredExtensions(filtered)
-  }, [extensions, filters])
+  const handleClearFilters = () => {
+    setFilters({
+      page: 0,
+      size: 20,
+    })
+  }
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -185,20 +222,10 @@ export default function InternalExtensionsPage() {
 
   // Calcular estatísticas
   const stats = {
-    total: Array.isArray(extensions) ? extensions.length : 0,
-    zoiper: Array.isArray(extensions) ? extensions.filter((ext) => ext.application === "Zoiper").length : 0,
-    xlite: Array.isArray(extensions) ? extensions.filter((ext) => ext.application === "X-Lite").length : 0,
-    others: Array.isArray(extensions)
-      ? extensions.filter((ext) => !["Zoiper", "X-Lite"].includes(ext.application)).length
-      : 0,
-  }
-
-  const handleFiltersChange = (newFilters: FilterType) => {
-    setFilters(newFilters)
-  }
-
-  const handleClearFilters = () => {
-    setFilters({})
+    total: pagination.totalElements,
+    zoiper: extensions.filter((ext) => ext.application === "Zoiper").length,
+    xlite: extensions.filter((ext) => ext.application === "X-Lite").length,
+    others: extensions.filter((ext) => !["Zoiper", "X-Lite"].includes(ext.application)).length,
   }
 
   if (error) {
@@ -284,11 +311,7 @@ export default function InternalExtensionsPage() {
       </div>
 
       {/* Filtros */}
-      <InternalExtensionFiltersComponent
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-      />
+      <InternalExtensionFiltersComponent filters={filters} onFiltersChange={updateFilters} onClearFilters={handleClearFilters} />
 
       {/* Tabela */}
       <Card>
@@ -298,12 +321,12 @@ export default function InternalExtensionsPage() {
             Lista de Ramais Internos
             {!isLoading && (
               <span className="text-sm font-normal text-muted-foreground">
-                ({filteredExtensions.length} {filteredExtensions.length === 1 ? "item" : "itens"})
+                ({pagination.totalElements} {pagination.totalElements === 1 ? "item" : "itens"})
               </span>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -312,12 +335,23 @@ export default function InternalExtensionsPage() {
               </div>
             </div>
           ) : (
-            <InternalExtensionTable
-              extensions={filteredExtensions}
-              onEdit={updateInternalExtension}
-              onDelete={deleteInternalExtension}
-              isLoading={isLoading}
-            />
+            <>
+              <InternalExtensionTable
+                extensions={extensions}
+                onEdit={updateInternalExtension}
+                onDelete={deleteInternalExtension}
+                isLoading={isLoading}
+              />
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalElements={pagination.totalElements}
+                pageSize={pagination.size}
+                onPageChange={changePage}
+                onPageSizeChange={changePageSize}
+                isLoading={isLoading}
+              />
+            </>
           )}
         </CardContent>
       </Card>

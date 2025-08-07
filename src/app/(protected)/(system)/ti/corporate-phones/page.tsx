@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { CorporatePhoneFilters } from "@/components/corporate-phone-filters"
 import { CorporatePhoneTable } from "@/components/corporate-phone-table"
 import { CreateCorporatePhoneModal } from "@/components/create-corporate-phone-modal"
+import { Pagination } from "@/components/common/pagination"
 import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
 import { ApiEndpoints } from "@/lib/api-endpoints"
 import type {
@@ -20,13 +21,23 @@ import type {
 export default function CorporatePhonesPage() {
   const { toast } = useToast()
 
-  // Estados - inicializando corporatePhones como array vazio para evitar o erro
+  // Estados
   const [corporatePhones, setCorporatePhones] = useState<CorporatePhone[]>([])
-  const [filteredPhones, setFilteredPhones] = useState<CorporatePhone[]>([])
+  const [filters, setFilters] = useState<Filters & { page?: number; size?: number }>({
+    page: 0,
+    size: 20,
+  })
+  const [pagination, setPagination] = useState({
+    totalElements: 0,
+    totalPages: 0,
+    currentPage: 0,
+    size: 20,
+    first: true,
+    last: true,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [filters, setFilters] = useState<Filters>({})
 
   // Função para buscar telefones corporativos
   const fetchCorporatePhones = useCallback(async () => {
@@ -34,7 +45,19 @@ export default function CorporatePhonesPage() {
       setLoading(true)
       setError(null)
 
-      const response = await fetchWithValidation(ApiEndpoints.backend.resourceCorporatePhoneList, {
+      const searchParams = new URLSearchParams()
+      if (filters.search) searchParams.append("search", filters.search)
+      if (filters.carrier) searchParams.append("carrier", filters.carrier)
+      if (filters.planType) searchParams.append("planType", filters.planType)
+      if (filters.status) searchParams.append("status", filters.status)
+      if (filters.companyId) searchParams.append("companyId", filters.companyId.toString())
+      if (filters.currentUserId) searchParams.append("currentUserId", filters.currentUserId.toString())
+      if (filters.page !== undefined) searchParams.append("page", filters.page.toString())
+      if (filters.size !== undefined) searchParams.append("size", filters.size.toString())
+
+      const url = `${ApiEndpoints.backend.resourceCorporatePhoneList}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
+
+      const response = await fetchWithValidation(url, {
         method: "GET",
       })
 
@@ -43,13 +66,35 @@ export default function CorporatePhonesPage() {
       }
 
       const data = await response.json()
-      // Garantindo que sempre seja um array
-      const phones = Array.isArray(data) ? data : data.data && Array.isArray(data.data) ? data.data : []
-      setCorporatePhones(phones)
+
+      // Verifica se a resposta tem a estrutura do Spring Boot
+      if (data.content && Array.isArray(data.content)) {
+        setCorporatePhones(data.content)
+        setPagination({
+          totalElements: data.totalElements,
+          totalPages: data.totalPages,
+          currentPage: data.number,
+          size: data.size,
+          first: data.first,
+          last: data.last,
+        })
+      } else {
+        // Fallback para estrutura simples
+        const phones = Array.isArray(data) ? data : data.data && Array.isArray(data.data) ? data.data : []
+        setCorporatePhones(phones)
+        setPagination({
+          totalElements: phones.length,
+          totalPages: 1,
+          currentPage: 0,
+          size: phones.length,
+          first: true,
+          last: true,
+        })
+      }
     } catch (err) {
       console.error("Erro ao buscar telefones corporativos:", err)
       setError("Falha ao carregar telefones corporativos. Tente novamente.")
-      setCorporatePhones([]) // Garantindo que seja array mesmo em caso de erro
+      setCorporatePhones([])
       toast({
         title: "Erro",
         description: "Falha ao carregar telefones corporativos.",
@@ -58,7 +103,7 @@ export default function CorporatePhonesPage() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [filters, toast])
 
   // Função para criar telefone corporativo
   const createCorporatePhone = async (data: CreateCorporatePhoneRequest): Promise<CorporatePhone> => {
@@ -76,13 +121,13 @@ export default function CorporatePhonesPage() {
       }
 
       const newPhone = await response.json()
-      setCorporatePhones((prev) => [...prev, newPhone])
 
       toast({
         title: "Sucesso!",
         description: "Telefone corporativo criado com sucesso.",
       })
 
+      await fetchCorporatePhones()
       return newPhone
     } catch (error) {
       console.error("Erro ao criar telefone corporativo:", error)
@@ -111,13 +156,13 @@ export default function CorporatePhonesPage() {
       }
 
       const updatedPhone = await response.json()
-      setCorporatePhones((prev) => prev.map((phone) => (phone.id === data.id ? updatedPhone : phone)))
 
       toast({
         title: "Sucesso!",
         description: "Telefone corporativo atualizado com sucesso.",
       })
 
+      await fetchCorporatePhones()
       return updatedPhone
     } catch (error) {
       console.error("Erro ao atualizar telefone corporativo:", error)
@@ -141,12 +186,12 @@ export default function CorporatePhonesPage() {
         throw new Error("Falha ao excluir telefone corporativo")
       }
 
-      setCorporatePhones((prev) => prev.filter((phone) => phone.id !== id))
-
       toast({
         title: "Sucesso!",
         description: "Telefone corporativo excluído com sucesso.",
       })
+
+      await fetchCorporatePhones()
     } catch (error) {
       console.error("Erro ao excluir telefone corporativo:", error)
       toast({
@@ -158,74 +203,44 @@ export default function CorporatePhonesPage() {
     }
   }
 
-  // Aplicar filtros
-  useEffect(() => {
-    // Garantindo que corporatePhones seja sempre um array antes de filtrar
-    if (!Array.isArray(corporatePhones)) {
-      setFilteredPhones([])
-      return
-    }
+  const updateFilters = useCallback((newFilters: Filters) => {
+    setFilters((prev) => ({
+      ...prev,
+      ...newFilters,
+      page: 0, // Reset page when filters change
+    }))
+  }, [])
 
-    let filtered = corporatePhones
+  const changePage = useCallback((page: number) => {
+    setFilters((prev) => ({ ...prev, page }))
+  }, [])
 
-    if (filters.search) {
-      filtered = filtered.filter((phone) => phone.number.toLowerCase().includes(filters.search!.toLowerCase()))
-    }
+  const changePageSize = useCallback((size: number) => {
+    setFilters((prev) => ({ ...prev, size, page: 0 }))
+  }, [])
 
-    if (filters.carrier) {
-      filtered = filtered.filter((phone) => phone.carrier === filters.carrier)
-    }
-
-    if (filters.planType) {
-      filtered = filtered.filter((phone) => phone.planType === filters.planType)
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter((phone) => phone.status === filters.status)
-    }
-
-    if (filters.whatsappBlock !== undefined) {
-      filtered = filtered.filter((phone) => phone.whatsappBlock === filters.whatsappBlock)
-    }
-
-    if (filters.companyId) {
-      filtered = filtered.filter((phone) => phone.companyId === filters.companyId)
-    }
-
-    if (filters.currentUserId) {
-      filtered = filtered.filter((phone) => phone.currentUserId === filters.currentUserId)
-    }
-
-    setFilteredPhones(filtered)
-  }, [corporatePhones, filters])
-
-  // Carregar dados iniciais
-  useEffect(() => {
-    fetchCorporatePhones()
-  }, [fetchCorporatePhones])
-
-  // Calcular estatísticas - garantindo que corporatePhones seja array
-  const stats = {
-    total: Array.isArray(corporatePhones) ? corporatePhones.length : 0,
-    active: Array.isArray(corporatePhones) ? corporatePhones.filter((phone) => phone.status === "ACTIVE").length : 0,
-    assigned: Array.isArray(corporatePhones)
-      ? corporatePhones.filter((phone) => phone.currentUserId !== null).length
-      : 0,
-    whatsappBlocked: Array.isArray(corporatePhones)
-      ? corporatePhones.filter((phone) => phone.whatsappBlock === true).length
-      : 0,
+  const handleClearFilters = () => {
+    setFilters({
+      page: 0,
+      size: 20,
+    })
   }
 
   const handleCreateSuccess = () => {
     setIsCreateModalOpen(false)
   }
 
-  const handleFiltersChange = (newFilters: Filters) => {
-    setFilters(newFilters)
-  }
+  // Carregar dados iniciais
+  useEffect(() => {
+    fetchCorporatePhones()
+  }, [fetchCorporatePhones])
 
-  const handleClearFilters = () => {
-    setFilters({})
+  // Calcular estatísticas
+  const stats = {
+    total: pagination.totalElements,
+    active: corporatePhones.filter((phone) => phone.status === "ACTIVE").length,
+    assigned: corporatePhones.filter((phone) => phone.currentUserId !== null).length,
+    whatsappBlocked: corporatePhones.filter((phone) => phone.whatsappBlock === true).length,
   }
 
   if (error) {
@@ -311,11 +326,7 @@ export default function CorporatePhonesPage() {
       </div>
 
       {/* Filtros */}
-      <CorporatePhoneFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-      />
+      <CorporatePhoneFilters filters={filters} onFiltersChange={updateFilters} onClearFilters={handleClearFilters} />
 
       {/* Tabela */}
       <Card>
@@ -325,12 +336,12 @@ export default function CorporatePhonesPage() {
             Lista de Telefones Corporativos
             {!loading && (
               <span className="text-sm font-normal text-muted-foreground">
-                ({filteredPhones.length} {filteredPhones.length === 1 ? "item" : "itens"})
+                ({pagination.totalElements} {pagination.totalElements === 1 ? "item" : "itens"})
               </span>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -339,12 +350,23 @@ export default function CorporatePhonesPage() {
               </div>
             </div>
           ) : (
-            <CorporatePhoneTable
-              corporatePhones={Array.isArray(filteredPhones) ? filteredPhones : []}
-              onUpdate={updateCorporatePhone}
-              onDelete={deleteCorporatePhone}
-              loading={loading}
-            />
+            <>
+              <CorporatePhoneTable
+                corporatePhones={corporatePhones}
+                onUpdate={updateCorporatePhone}
+                onDelete={deleteCorporatePhone}
+                loading={loading}
+              />
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalElements={pagination.totalElements}
+                pageSize={pagination.size}
+                onPageChange={changePage}
+                onPageSizeChange={changePageSize}
+                isLoading={loading}
+              />
+            </>
           )}
         </CardContent>
       </Card>

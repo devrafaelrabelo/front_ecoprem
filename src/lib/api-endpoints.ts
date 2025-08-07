@@ -1,5 +1,5 @@
 // /lib/api-endpoints.ts
-import { API_BASE, SELENIUM_BASE, USERHUB_BASE } from "@/config"
+import { API_BASE, SELENIUM_BASE, USERHUB_BASE, MONITORHEALTH } from "@/config"
 
 export const ApiEndpoints = {
   // 🌐 Backend (Spring Boot)
@@ -84,7 +84,7 @@ export const ApiEndpoints = {
     // PROFILE
     userProfile: `${API_BASE}/user/profile`,
     userMe: `${API_BASE}/user/me`,
-    userSystemTheme: `${API_BASE}/user/settings/theme`,    
+    userSystemTheme: `${API_BASE}/user/settings/theme`,
     userPermissions: `${API_BASE}/user/permissions`,
 
 
@@ -192,6 +192,11 @@ export const ApiEndpoints = {
     
     consultarcpf: `${SELENIUM_BASE}/cpf/consultarcpf`,    
     capturarPdf: `${SELENIUM_BASE}/pdf`,
+  },
+
+  monitor: {
+    health: `${MONITORHEALTH}/health`,   
+    
   },
 
   // 👤 UserHub (FastAPI + Google Workspace)

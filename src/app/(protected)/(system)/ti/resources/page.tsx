@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Package, BarChart3, CheckCircle, XCircle } from "lucide-react"
+import { Package, BarChart3, CheckCircle, XCircle, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,55 +9,53 @@ import { ResourceFilterComponent } from "@/components/resource-filters"
 import { ResourceTable } from "@/components/resource-table"
 import { ResourceForm } from "@/components/resource-form"
 import { ResourceDetails } from "@/components/resource-details"
-import { CreateResourceModal } from "@/components/create-resource-modal"
 import { useResources } from "@/hooks/use-resources"
-import fetchWithValidation from "@/features/auth/services/fetch-with-validation"
-import { ApiEndpoints } from "@/lib/api-endpoints"
-import { useToast } from "@/components/ui/use-toast"
-import type { Resource, ResourceFilters, ResourceFormData } from "@/types/resource"
+import type { Resource, ResourceFormData } from "@/types/resource"
 
 export default function ResourcesPage() {
-  const [filters, setFilters] = useState<ResourceFilters>({})
   const [editingResource, setEditingResource] = useState<Resource | null>(null)
   const [viewingResource, setViewingResource] = useState<Resource | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { resources, isLoading, error, refetch } = useResources(filters)
-  const { toast } = useToast()
+  const {
+    resources,
+    filters,
+    pagination,
+    isLoading,
+    error,
+    refetch,
+    updateFilters,
+    changePage,
+    changePageSize,
+    createResource,
+    updateResource,
+    deleteResource,
+  } = useResources()
+
+  const handleCreateResource = async (data: ResourceFormData) => {
+    setIsSubmitting(true)
+    try {
+      await createResource(data)
+      setIsCreateModalOpen(false)
+    } catch (error) {
+      // Error is handled in the hook
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const handleUpdateResource = async (data: ResourceFormData) => {
     if (!editingResource?.id) return
 
     setIsSubmitting(true)
     try {
-      const response = await fetchWithValidation(`${ApiEndpoints.backend.resourcesIdAlter}/${editingResource.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Erro ao atualizar recurso: ${response.status}`)
-      }
-
-      toast({
-        title: "Recurso atualizado",
-        description: "O recurso foi atualizado com sucesso.",
-      })
-
+      await updateResource(editingResource.id, data)
       setIsEditModalOpen(false)
       setEditingResource(null)
-      refetch()
     } catch (error) {
-      toast({
-        title: "Erro ao atualizar recurso",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
-      })
+      // Error is handled in the hook
     } finally {
       setIsSubmitting(false)
     }
@@ -65,30 +63,9 @@ export default function ResourcesPage() {
 
   const handleDeleteResource = async (resourceId: string) => {
     try {
-      const response = await fetchWithValidation(`${ApiEndpoints.backend.resourcesIdDelete}/${resourceId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Erro ao excluir recurso: ${response.status}`)
-      }
-
-      toast({
-        title: "Recurso excluído",
-        description: "O recurso foi excluído com sucesso.",
-      })
-
-      refetch()
+      await deleteResource(resourceId)
     } catch (error) {
-      toast({
-        title: "Erro ao excluir recurso",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
-      })
+      // Error is handled in the hook
       throw error
     }
   }
@@ -107,10 +84,20 @@ export default function ResourcesPage() {
     setEditingResource(null)
   }
 
+  const handleCreateCancel = () => {
+    setIsCreateModalOpen(false)
+  }
+
   // Calcular estatísticas
-  const totalResources = resources.length
-  const activeResources = resources.filter((resource) => resource.status?.allowsUsage).length
-  const inactiveResources = totalResources - activeResources
+  const totalResources = pagination.totalElements
+  const activeResources = resources.filter(
+    (resource) =>
+      resource.status?.toLowerCase().includes("ativo") || resource.status?.toLowerCase().includes("disponível"),
+  ).length
+  const inactiveResources = resources.filter(
+    (resource) =>
+      resource.status?.toLowerCase().includes("inativo") || resource.status?.toLowerCase().includes("manutenção"),
+  ).length
 
   if (error) {
     return (
@@ -138,7 +125,10 @@ export default function ResourcesPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Gerencie os equipamentos e recursos da empresa</p>
         </div>
-        <CreateResourceModal onResourceCreated={refetch} />
+        <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Recurso
+        </Button>
       </div>
 
       {/* Estatísticas */}
@@ -178,7 +168,7 @@ export default function ResourcesPage() {
       </div>
 
       {/* Filtros */}
-      <ResourceFilterComponent filters={filters} onFiltersChange={setFilters} />
+      <ResourceFilterComponent filters={filters} onFiltersChange={updateFilters} />
 
       {/* Tabela */}
       <Card>
@@ -188,30 +178,34 @@ export default function ResourcesPage() {
             Lista de Recursos
             {!isLoading && (
               <span className="text-sm font-normal text-muted-foreground">
-                ({resources.length} {resources.length === 1 ? "item" : "itens"})
+                ({pagination.totalElements} {pagination.totalElements === 1 ? "item" : "itens"})
               </span>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Carregando recursos...</p>
-              </div>
-            </div>
-          ) : (
-            <ResourceTable
-              resources={resources}
-              onEdit={handleEdit}
-              onView={handleView}
-              onDelete={handleDeleteResource}
-              onRefresh={refetch}
-            />
-          )}
+          <ResourceTable
+            resources={resources}
+            pagination={pagination}
+            isLoading={isLoading}
+            onPageChange={changePage}
+            onPageSizeChange={changePageSize}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDeleteResource}
+          />
         </CardContent>
       </Card>
+
+      {/* Modal de Criação */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Recurso</DialogTitle>
+          </DialogHeader>
+          <ResourceForm onSubmit={handleCreateResource} onCancel={handleCreateCancel} isSubmitting={isSubmitting} />
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Edição */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
